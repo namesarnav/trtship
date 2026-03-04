@@ -27,10 +27,14 @@ machine and was installed with `pip install --user uv`. Build backend: `hatchlin
 - Extra `trt`: `tensorrt` (+ `cuda-python` for device memory). Not installable on machines without the
   NVIDIA index / suitable platform, so it is never a hard dependency.
 - Extra `triton`: `tritonclient[all]`.
-- Extra `dev`: `pytest`, `pytest-cov`, `ruff`, `mypy`, `pre-commit`, type stubs.
-Torch is core because model loading/export/validation are core, CPU-testable functionality. On the
-dev machine (no usable GPU) the CPU torch wheel is used to avoid multi-GB CUDA wheels; GPU installs
-use the CUDA index documented in the README.
+- Dependency group `dev` (not an extra): `pytest`, `pytest-cov`, `ruff`, `mypy`, `pre-commit`, type stubs.
+Torch is core because model loading/export/validation are core, CPU-testable functionality.
+
+Amended 2026-09-19: uv rejects a `tool.uv.sources` entry conditioned on an extra when the package is
+also a base dependency, so a `cpu` extra that swaps the torch index is not possible while torch
+stays in the base dependencies. Instead the lock uses PyPI torch (CUDA on Linux, so a plain
+`uv sync` works on GPU machines) and machines without a GPU run `make install-cpu`, which installs
+the CPU wheel first and then the project, so no CUDA packages are pulled in.
 
 ## D-005 - Optional native stacks behind capability probes (2026-09-19)
 
@@ -63,3 +67,43 @@ shell-injection. Trade-off: parsing CLI output; mitigated by using `--format jso
 
 Per the project brief, no source, docs, metadata, or commit message mentions an AI tool. The brief
 (`project.md`) is a local working document and is excluded through `.git/info/exclude`, not committed.
+
+## D-011 - Path semantics in configuration (2026-09-19)
+
+Input paths (weights, datasets) resolve against the config file's directory; output paths (run root,
+cache, model repository, timing cache) resolve against the current working directory. Resolving
+outputs against the config directory would put `runs/` inside `configs/examples/`. Both are made
+absolute during validation, so a stored config snapshot is unambiguous. Field defaults are
+validated (`validate_default=True`) so default output paths are made absolute too; without this the
+defaults silently stayed relative.
+
+## D-012 - CLI error boundary uses Typer's public API only (2026-09-19)
+
+Typer 0.27 vendors a private copy of click (`typer._click`), so subclassing its group class would
+depend on unstable internals. Commands are wrapped by `cli.guard.handle_errors`, which maps
+`TrtshipError` to its exit code and any other exception to exit 70 using only `typer.Exit`,
+`typer.Abort` and `typer.BadParameter`.
+
+## D-013 - Tooling configuration (2026-09-19)
+
+- Dev interpreter: uv-managed CPython 3.12. The pyenv 3.12.9 on the dev machine was built without
+  `_sqlite3`, which crashes mypy's default cache and coverage.py. mypy also has `sqlite_cache =
+  false` so it works on such interpreters.
+- mypy runs on the running interpreter (3.12 in CI); numpy 2.x stubs use 3.12-only syntax, so a
+  `python_version = "3.11"` pin fails. Python 3.11 compatibility is covered by the test matrix.
+- Ruff `TC` (typing-only-import) rules are not enabled: they would move ~25 imports for negligible
+  benefit and are a footgun with pydantic's runtime annotation evaluation.
+- `ruff format` in this version reformats Markdown code fences; Markdown is excluded.
+
+## D-014 - License: MIT (2026-09-19)
+
+The owner's earlier README for this repository stated MIT; that is used as the default. Copyright
+holder is the repository owner per the git identity. Change `LICENSE` and `pyproject.toml` if a
+different license is wanted.
+
+## D-015 - `require_gpu` checks the driver stack only (2026-09-19)
+
+`require_gpu` requires a working NVIDIA driver/device (`nvidia-smi`). It does not require a CUDA
+build of torch, because a healthy GPU machine with CPU-only torch is still able to run TensorRT.
+Stages that move tensors with torch additionally call `require(TORCH_CUDA, ...)`. Whether TensorRT
+stages use torch or cuda-python for device memory is decided in Phase 7.
