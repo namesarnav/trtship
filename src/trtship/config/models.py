@@ -23,9 +23,12 @@ from pydantic import (
     model_validator,
 )
 
+from trtship.specs import IDENTIFIER, TensorSpec
 from trtship.utils.hashing import sha256_json
 
-_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+# Config-facing name for the shared tensor spec.
+InputSpec = TensorSpec
+
 _MODEL_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 _FACTORY = re.compile(r"^[A-Za-z_][\w.]*:[A-Za-z_][\w.]*$")
 
@@ -60,16 +63,6 @@ class Precision(StrEnum):
     INT8 = "int8"
 
 
-class DType(StrEnum):
-    FLOAT32 = "float32"
-    FLOAT16 = "float16"
-    INT64 = "int64"
-    INT32 = "int32"
-    INT8 = "int8"
-    UINT8 = "uint8"
-    BOOL = "bool"
-
-
 class ModelKind(StrEnum):
     MODULE = "module"  # factory builds an nn.Module (random init)
     CHECKPOINT = "checkpoint"  # factory builds an nn.Module, path holds a state_dict
@@ -79,46 +72,13 @@ class ModelKind(StrEnum):
 # --------------------------------------------------------------------------- model
 
 
-class InputSpec(_Base):
-    """One model input. String dims are symbolic (dynamic); integer dims are static."""
-
-    name: str
-    dtype: DType = DType.FLOAT32
-    shape: list[StrictInt | str] = Field(min_length=1)
-
-    @field_validator("name")
-    @classmethod
-    def _valid_name(cls, value: str) -> str:
-        if not _IDENT.match(value):
-            raise ValueError("must be an identifier (letters, digits, underscore)")
-        return value
-
-    @field_validator("shape")
-    @classmethod
-    def _valid_shape(cls, value: list[int | str]) -> list[int | str]:
-        for position, dim in enumerate(value):
-            if isinstance(dim, int) and dim < 1:
-                raise ValueError(f"dim {position} must be >= 1, got {dim}")
-            if isinstance(dim, str) and not _IDENT.match(dim):
-                raise ValueError(f"dim {position}: symbolic name {dim!r} is not an identifier")
-        return value
-
-    @property
-    def dynamic_axes(self) -> dict[int, str]:
-        return {i: d for i, d in enumerate(self.shape) if isinstance(d, str)}
-
-    @property
-    def is_dynamic(self) -> bool:
-        return bool(self.dynamic_axes)
-
-
 class ModelConfig(_Base):
     name: str
     kind: ModelKind
     path: InputPath | None = None
     factory: str | None = None
     factory_kwargs: dict[str, Any] = Field(default_factory=dict)
-    inputs: list[InputSpec] = Field(min_length=1)
+    inputs: list[TensorSpec] = Field(min_length=1)
     output_names: list[str] | None = None
     trust_source: bool = False
 
@@ -140,23 +100,31 @@ class ModelConfig(_Base):
 
     @model_validator(mode="after")
     def _check_kind_requirements(self) -> ModelConfig:
-        if self.kind is ModelKind.MODULE and self.factory is None:
-            raise ValueError("kind 'module' requires 'factory'")
+        if self.kind is ModelKind.MODULE:
+            if self.factory is None:
+                raise ValueError("kind 'module' requires 'factory'")
+            if self.path is not None:
+                raise ValueError(
+                    "kind 'module' does not use 'path'; use kind 'checkpoint' for weights"
+                )
         if self.kind is ModelKind.CHECKPOINT and (self.factory is None or self.path is None):
             raise ValueError("kind 'checkpoint' requires both 'factory' and 'path'")
-        if self.kind is ModelKind.TORCHSCRIPT and self.path is None:
-            raise ValueError("kind 'torchscript' requires 'path'")
+        if self.kind is ModelKind.TORCHSCRIPT:
+            if self.path is None:
+                raise ValueError("kind 'torchscript' requires 'path'")
+            if self.factory is not None:
+                raise ValueError("kind 'torchscript' does not use 'factory'")
         names = [spec.name for spec in self.inputs]
         if len(set(names)) != len(names):
             raise ValueError("input names must be unique")
         if self.output_names is not None:
             if len(set(self.output_names)) != len(self.output_names):
                 raise ValueError("output_names must be unique")
-            if not all(_IDENT.match(n) for n in self.output_names):
+            if not all(IDENTIFIER.match(n) for n in self.output_names):
                 raise ValueError("output_names must be identifiers")
         return self
 
-    def input(self, name: str) -> InputSpec:
+    def input(self, name: str) -> TensorSpec:
         for spec in self.inputs:
             if spec.name == name:
                 return spec

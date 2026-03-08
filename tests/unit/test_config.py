@@ -57,6 +57,8 @@ def test_all_errors_are_reported_together(write_config: Writer) -> None:
     [
         (lambda c: c["model"].update(kind="checkpoint"), "requires both 'factory' and 'path'"),
         (lambda c: c["model"].update(kind="torchscript", factory=None), "requires 'path'"),
+        (lambda c: c["model"].update(path="w.pt"), "does not use 'path'"),
+        (lambda c: c["model"].update(kind="torchscript", path="m.pt"), "does not use 'factory'"),
         (lambda c: c["model"].update(factory="not a factory"), "package.module:callable"),
         (lambda c: c["model"]["inputs"].append(dict(c["model"]["inputs"][0])), "unique"),
         (lambda c: c["model"]["inputs"][0].update(shape=[0, 3]), ">= 1"),
@@ -176,6 +178,7 @@ def test_input_paths_resolve_against_config_dir_and_output_paths_against_cwd(
     workdir = tmp_path / "work"
     workdir.mkdir()
     monkeypatch.chdir(workdir)
+    config_dict["model"].pop("factory")
     config_dict["model"].update(kind="torchscript", path="../../models/m.pt")
     path = cfg_dir / "c.yaml"
     path.write_text(yaml.safe_dump(config_dict))

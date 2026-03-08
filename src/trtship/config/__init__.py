@@ -10,7 +10,6 @@ from trtship.config.models import (
     ArtifactsConfig,
     BenchmarkConfig,
     CalibrationConfig,
-    DType,
     ExportConfig,
     InputSpec,
     ModelConfig,
@@ -26,6 +25,7 @@ from trtship.config.models import (
     ValidationConfig,
     config_hash,
 )
+from trtship.specs import DType, TensorSpec
 
 __all__ = [
     "ArtifactsConfig",
@@ -41,6 +41,7 @@ __all__ = [
     "Precision",
     "ShapeRange",
     "TensorRTConfig",
+    "TensorSpec",
     "Tolerance",
     "TritonConfig",
     "TrtshipConfig",
