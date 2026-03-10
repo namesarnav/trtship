@@ -106,7 +106,13 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+# Makes the test-only `trtship_fixtures` package importable, as a user's own model package would be.
+pythonpath = ["tests/fixtures"]
 addopts = "-ra --strict-markers --strict-config"
+filterwarnings = [
+    # TorchScript is deprecated upstream but still supported by trtship (see DECISIONS.md D-016).
+    "ignore:`torch\\.jit\\.(script|load|save|trace)` is deprecated:FutureWarning",
+]
 markers = [
     "gpu: requires a usable NVIDIA GPU (skipped, never passed, when absent)",
     "tensorrt: requires the TensorRT Python package and a supported GPU",
