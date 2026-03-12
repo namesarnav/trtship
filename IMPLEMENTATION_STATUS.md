@@ -4,12 +4,12 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 2 - Model abstraction (not started).
+Phase 3 - Model inspection (not started).
 
 ## Current task
 
-Design `ModelSource` / `LoadedModel` / `IOSpec` and the test fixture models
-(`tests/fixtures/trtship_fixtures`), then implement nn.Module, TorchScript, and checkpoint loaders.
+Implement model inspection (architecture summary, parameter counts, trainable parameters, memory
+footprint, input/output shapes and dtypes, device) with machine-readable and human-readable reports.
 
 ## Completed phases
 
@@ -27,17 +27,26 @@ Design `ModelSource` / `LoadedModel` / `IOSpec` and the test fixture models
   - Not done from the Phase 1 list: nothing outstanding. CI workflow is Phase 24; the JSON Schema
     export of the config is Phase 19.
 
+- **Phase 2** - Model abstraction. (2026-09-19)
+  - `trtship.specs` (`TensorSpec`, `DType`), `trtship.models` (loaders for module/checkpoint/
+    TorchScript, `LoadedModel.run`, weight hashing, deterministic inputs, output normalization,
+    signature inference), fixture models in `tests/fixtures/trtship_fixtures`, `docs/pipeline/models.md`.
+  - Verified on CPU: 249 tests total (93 new), ruff, mypy --strict.
+  - Model kinds exercised: MLP, two-input integer token model with dynamic sequence length and
+    tuple outputs, dict outputs. Nothing assumes image classification. Not yet exercised: real
+    ResNet/BERT weights (Phase 22).
+
 ## Remaining tasks
 
-Phases 2-26 per `PROJECT_PLAN.md`.
+Phases 3-26 per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: 156 (unit), `make check` green
+- Passing: 249 (unit), `make check` green
 - Failing: none
 - Skipped: none yet (no GPU-marked tests exist; the marker/skip machinery is in
   `tests/conftest.py` and skips with an explicit reason when no GPU/TensorRT is usable)
-- Coverage: 94% (`make test-cov`); the uncovered lines are probe branches for states this machine
+- Coverage: 94% (`make test-cov`, measured after Phase 1); the uncovered lines are probe branches for states this machine
   cannot produce naturally and a few error paths.
 
 ## Known bugs

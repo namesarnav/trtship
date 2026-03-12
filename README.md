@@ -22,7 +22,8 @@ GPU hardware.
 | Package, configuration, structured errors, logging | implemented, tested |
 | Environment detection (`trtship doctor`) | implemented, tested |
 | Run directories, run IDs, manifest, environment/config snapshots | implemented, tested |
-| Model loading and inspection | planned |
+| Model loading (module / checkpoint / TorchScript), signature inference | implemented, tested |
+| Model inspection reports | planned |
 | ONNX export, validation, optimization | planned |
 | TensorRT engine builder, INT8 calibration | planned |
 | Numerical validation, benchmarking, reports | planned |

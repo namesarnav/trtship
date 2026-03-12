@@ -20,5 +20,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   atomic writes.
 - CLI: `trtship version`, `trtship doctor`, `trtship config validate`.
 
+- Model abstraction: `module`, `checkpoint` (weights-only by default, common wrapper formats,
+  DataParallel prefix stripping) and `torchscript` (opt-in) loaders; weight-identity hashing;
+  deterministic example-input generation; output normalization; output signature inference with
+  dynamic-dimension attribution.
+- Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
+
 #### Notes
 - No TensorRT, calibration, benchmark, or Triton functionality exists yet.

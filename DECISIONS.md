@@ -107,3 +107,23 @@ different license is wanted.
 build of torch, because a healthy GPU machine with CPU-only torch is still able to run TensorRT.
 Stages that move tensors with torch additionally call `require(TORCH_CUDA, ...)`. Whether TensorRT
 stages use torch or cuda-python for device memory is decided in Phase 7.
+
+## D-016 - TorchScript supported despite upstream deprecation (2026-09-19)
+
+torch 2.14 emits a `FutureWarning` for `torch.jit.script`/`torch.jit.load` recommending
+`torch.export`. The brief asks for TorchScript "where appropriate", so loading is supported, gated
+behind `trust_source`, and documented as deprecated upstream. The warning is filtered in the test
+suite only; users still see it. Revisit if a future torch removes TorchScript loading.
+
+## D-017 - Shared tensor spec and signature inference (2026-09-19)
+
+`DType` and `TensorSpec` live in `trtship.specs` (no torch/numpy imports) and are used by config,
+model inspection, export, validation, and Triton generation, instead of separate config and runtime
+types. `InputSpec` remains as a config-facing alias. `value_range` on a spec bounds generated data
+so integer inputs (token ids) are safe to fabricate.
+
+Output specs are derived by running the model at two symbol-size assignments (profile `opt`, then
+profile `min` or a distinct probe size) and attributing changing dimensions to the symbol that
+changed identically. This needs no static analysis of `forward` and works for any tensor-returning
+model. Limits: dims determined by several symbols are named synthetically rather than expressed as
+formulas, and a profile that pins a symbol (min=opt=max) makes its effect unobservable.
