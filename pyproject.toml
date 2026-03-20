@@ -67,6 +67,7 @@ src = ["src", "tests"]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "PT", "RUF", "PL", "S", "N", "A"]
 ignore = [
     "PLR0913",  # explicit keyword-heavy stage/config constructors are intentional
+    "PLR0917",  # same, and Typer commands take one parameter per CLI option
     "PLR2004",  # magic values in comparisons are fine in validation thresholds
     "S101",     # asserts are used in tests; production code does not rely on them
     "A005",     # trtship.logging intentionally mirrors the stdlib package name
