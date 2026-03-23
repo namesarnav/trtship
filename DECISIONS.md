@@ -127,3 +127,12 @@ profile `min` or a distinct probe size) and attributing changing dimensions to t
 changed identically. This needs no static analysis of `forward` and works for any tensor-returning
 model. Limits: dims determined by several symbols are named synthetically rather than expressed as
 formulas, and a profile that pins a symbol (min=opt=max) makes its effect unobservable.
+
+## D-018 - Activation memory is reported as an upper bound (2026-09-19)
+
+Peak activation memory depends on the runtime's buffer reuse and scheduling, so it cannot be
+measured honestly from PyTorch module hooks. The inspection report therefore sums every leaf
+module's output size during one forward pass and labels it an upper bound, alongside the symbol
+sizes it was taken at. It is `null` with an explanatory note when unmeasurable (e.g. scripted
+modules, which reject forward hooks). Real memory numbers come from the benchmark stage (Phase 10),
+which measures the actual engine on the actual device.

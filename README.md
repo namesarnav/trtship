@@ -23,7 +23,7 @@ GPU hardware.
 | Environment detection (`trtship doctor`) | implemented, tested |
 | Run directories, run IDs, manifest, environment/config snapshots | implemented, tested |
 | Model loading (module / checkpoint / TorchScript), signature inference | implemented, tested |
-| Model inspection reports | planned |
+| Model inspection reports (`trtship inspect`) | implemented, tested |
 | ONNX export, validation, optimization | planned |
 | TensorRT engine builder, INT8 calibration | planned |
 | Numerical validation, benchmarking, reports | planned |
@@ -59,6 +59,7 @@ trtship version
 trtship doctor                          # what can this machine run?
 trtship doctor --require tensorrt       # exit code 3 unless TensorRT is usable
 trtship config validate my-config.yaml  # validate a config; --set key=value to override
+trtship inspect my-config.yaml          # parameters, memory estimate, I/O signature, module tree
 ```
 
 `trtship doctor` reports Python, PyTorch (and whether it can use CUDA), the NVIDIA driver and GPUs,

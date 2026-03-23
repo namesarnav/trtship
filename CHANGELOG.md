@@ -24,6 +24,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   DataParallel prefix stripping) and `torchscript` (opt-in) loaders; weight-identity hashing;
   deterministic example-input generation; output normalization; output signature inference with
   dynamic-dimension attribution.
+- Model inspection (`trtship inspect`): parameter counts (total/trainable/frozen, shared weights
+  counted once), buffers, exact weight bytes, an activation upper bound measured from a real
+  forward pass, module tree, and I/O signature, as versioned JSON and a human-readable report.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 
 #### Notes

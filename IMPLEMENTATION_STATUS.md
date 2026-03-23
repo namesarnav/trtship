@@ -4,12 +4,12 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 3 - Model inspection (not started).
+Phase 4 - ONNX export (not started).
 
 ## Current task
 
-Implement model inspection (architecture summary, parameter counts, trainable parameters, memory
-footprint, input/output shapes and dtypes, device) with machine-readable and human-readable reports.
+Implement `export/`: PyTorch -> ONNX for static and dynamic shapes, configurable opset, named
+inputs/outputs, dynamic axes derived from the `ModelSignature`, export metadata, and clean failures.
 
 ## Completed phases
 
@@ -36,13 +36,22 @@ footprint, input/output shapes and dtypes, device) with machine-readable and hum
     tuple outputs, dict outputs. Nothing assumes image classification. Not yet exercised: real
     ResNet/BERT weights (Phase 22).
 
+- **Phase 3** - Model inspection. (2026-09-19)
+  - `models/inspection.py` (`inspect_model`, `ModelReport`), `reporting/model_report.py` (Rich
+    rendering + plain-text export), `trtship inspect` (`--json`, `-o/--force`, `--depth`, `--top`,
+    `--set`), `docs/pipeline/inspection.md`.
+  - Verified on CPU: 292 tests total (43 new), ruff, mypy --strict. Parameter counts and the
+    activation bound are asserted against hand-computed values.
+  - Not verified: models with very large parameter counts (hashing and inspection are streaming and
+    linear, but this has not been timed on a ResNet-50/BERT-size model).
+
 ## Remaining tasks
 
-Phases 3-26 per `PROJECT_PLAN.md`.
+Phases 4-26 per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: 249 (unit), `make check` green
+- Passing: 292 (unit), `make check` green
 - Failing: none
 - Skipped: none yet (no GPU-marked tests exist; the marker/skip machinery is in
   `tests/conftest.py` and skips with an explicit reason when no GPU/TensorRT is usable)
