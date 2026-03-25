@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,11 @@ import pytest
 import yaml
 
 from trtship.utils import env
+
+# Rich reads these when a Console is created (at CLI import time). A developer's or CI's
+# FORCE_COLOR would otherwise inject ANSI codes into output the tests assert on.
+os.environ.pop("FORCE_COLOR", None)
+os.environ["NO_COLOR"] = "1"
 
 
 def minimal_config_dict() -> dict[str, Any]:
