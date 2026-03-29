@@ -8,7 +8,7 @@ import torch
 
 from trtship.config import ModelConfig, OptimizationProfile
 from trtship.errors import ConfigError, ModelError
-from trtship.models import make_input, make_inputs, resolve_symbol_sizes
+from trtship.models import make_input, make_inputs, resolve_symbol_sizes, symbol_ranges
 from trtship.specs import DType, TensorSpec
 
 
@@ -145,3 +145,17 @@ def test_partial_profile_fills_remaining_symbols() -> None:
 
 def test_static_model_has_no_symbols() -> None:
     assert resolve_symbol_sizes(model_cfg([{"name": "x", "shape": [2, 3]}]), [], "opt") == {}
+
+
+def test_symbol_ranges_from_profile_and_unconstrained_defaults() -> None:
+    model = model_cfg([{"name": "x", "shape": ["batch", "width", 4]}])
+    prof = profile(x=([1, 3, 4], [2, 3, 4], [8, 3, 4]))
+    assert symbol_ranges(model, [prof]) == {"batch": (1, 8), "width": (3, 3)}
+    assert symbol_ranges(model, []) == {"batch": (1, None), "width": (1, None)}
+    partial = model_cfg([IDS, {"name": "extra", "shape": ["batch", "other"]}])
+    only_ids = profile(ids=([1, 8], [4, 32], [16, 128]))
+    assert symbol_ranges(partial, [only_ids]) == {
+        "batch": (1, 16),
+        "other": (1, None),
+        "seq": (8, 128),
+    }

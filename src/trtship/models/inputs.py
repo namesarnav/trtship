@@ -76,6 +76,20 @@ def make_inputs(
     return {spec.name: make_input(spec, sizes, seed=seed).to(device) for spec in specs}
 
 
+def symbol_ranges(
+    model: ModelConfig, profiles: Sequence[OptimizationProfile]
+) -> dict[str, tuple[int, int | None]]:
+    """``(min, max)`` per symbolic dim from the first profile; ``(1, None)`` when unconstrained."""
+    symbols = sorted({s for spec in model.inputs for s in spec.symbols})
+    lows = resolve_symbol_sizes(model, profiles, "min")
+    highs = resolve_symbol_sizes(model, profiles, "max")
+    covered: set[str] = set()
+    if profiles:
+        for name in profiles[0].inputs:
+            covered |= model.input(name).symbols
+    return {s: (lows[s], highs[s]) if s in covered else (1, None) for s in symbols}
+
+
 def resolve_symbol_sizes(
     model: ModelConfig,
     profiles: Sequence[OptimizationProfile],

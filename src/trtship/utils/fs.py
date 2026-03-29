@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from trtship.errors import ArtifactConflictError
+
 
 def atomic_write_bytes(path: Path, data: bytes) -> None:
     """Write ``data`` to ``path`` via a same-directory temp file and an atomic rename."""
@@ -37,3 +39,22 @@ def path_size_bytes(path: Path) -> int:
     if path.is_dir():
         return sum(member.stat().st_size for member in path.rglob("*") if member.is_file())
     return path.stat().st_size
+
+
+def publish_new(tmp: Path, dest: Path) -> None:
+    """Atomically move ``tmp`` to ``dest``, refusing to replace an existing file.
+
+    ``tmp`` must be on the same filesystem as ``dest`` (write it next to the destination). The
+    hard link fails atomically if ``dest`` exists, so two writers can never silently clobber each
+    other. ``tmp`` is removed either way.
+    """
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.link(tmp, dest)
+    except FileExistsError:
+        raise ArtifactConflictError(
+            f"refusing to overwrite existing artifact: {dest}",
+            hint="Artifacts are immutable. Choose a new output path or remove the file yourself.",
+        ) from None
+    finally:
+        tmp.unlink(missing_ok=True)

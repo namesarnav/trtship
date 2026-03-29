@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from trtship.errors import CommandError
-from trtship.utils.fs import atomic_write_bytes, atomic_write_json, path_size_bytes
+from trtship.errors import ArtifactConflictError, CommandError
+from trtship.utils.fs import atomic_write_bytes, atomic_write_json, path_size_bytes, publish_new
 from trtship.utils.hashing import (
     canonical_json,
     sha256_bytes,
@@ -139,3 +139,19 @@ def test_run_command_does_not_use_a_shell() -> None:
         [sys.executable, "-c", "import sys; print(sys.argv[1])", "$(echo pwned); ls"]
     )
     assert result.stdout.strip() == "$(echo pwned); ls"
+
+
+def test_publish_new_moves_the_file_and_refuses_to_clobber(tmp_path: Path) -> None:
+    tmp = tmp_path / ".x.tmp"
+    tmp.write_bytes(b"new")
+    dest = tmp_path / "sub" / "x.bin"
+    publish_new(tmp, dest)
+    assert dest.read_bytes() == b"new"
+    assert not tmp.exists()
+
+    again = tmp_path / ".y.tmp"
+    again.write_bytes(b"other")
+    with pytest.raises(ArtifactConflictError, match="refusing to overwrite"):
+        publish_new(again, dest)
+    assert dest.read_bytes() == b"new"  # untouched
+    assert not again.exists()  # temp is cleaned up either way
