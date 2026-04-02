@@ -99,6 +99,44 @@ def exploding_forward() -> nn.Module:
     return _Explodes()
 
 
+class _Fft(nn.Module):
+    """Uses an operator with no ONNX mapping (aten::fft_rfft)."""
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        magnitude: torch.Tensor = torch.fft.rfft(x).abs()
+        return magnitude
+
+
+def unsupported_op() -> nn.Module:
+    return _Fft()
+
+
+class _BakedBatch(nn.Module):
+    """Tracing freezes ``int(x.shape[0])`` into the graph, so the exported model is only correct
+    at the traced batch size even though its declared shapes say the batch is dynamic."""
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        n = int(x.shape[0])
+        return x.reshape(n, -1).sum(dim=1, keepdim=True) * torch.ones(n, 1)
+
+
+def baked_batch() -> nn.Module:
+    return _BakedBatch()
+
+
+class _DataDependent(nn.Module):
+    """Data-dependent Python control flow: tracing emits a TracerWarning."""
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if x.sum() > 0:
+            return x * 2
+        return x
+
+
+def data_dependent_branch() -> nn.Module:
+    return _DataDependent()
+
+
 def returns_not_a_module() -> object:
     return "definitely not a module"
 

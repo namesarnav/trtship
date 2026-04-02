@@ -37,6 +37,8 @@ dependencies = [
 trt = ["tensorrt>=10.0", "cuda-python>=12.0"]
 # Triton HTTP/gRPC clients.
 triton = ["tritonclient[all]>=2.40"]
+# The torch.export-based ONNX exporter (`export.dynamo: true`).
+dynamo = ["onnxscript>=0.1"]
 
 [project.scripts]
 trtship = "trtship.cli.main:main"
