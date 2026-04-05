@@ -6,7 +6,7 @@ from typing import Annotated
 
 import typer
 
-from trtship.cli.commands import config_cmd, doctor, inspect_cmd, version
+from trtship.cli.commands import config_cmd, doctor, export_cmd, inspect_cmd, version
 from trtship.cli.guard import handle_errors
 from trtship.logging import configure_logging
 
@@ -47,6 +47,9 @@ app.command("doctor", help="Detect the Python, CUDA, TensorRT, ONNX and Docker e
 )
 app.command("inspect", help="Report a model's architecture, parameters, memory and I/O.")(
     handle_errors(inspect_cmd.inspect_command)
+)
+app.command("export", help="Export the model to ONNX and verify the graph.")(
+    handle_errors(export_cmd.export_command)
 )
 app.add_typer(config_cmd.config_app, name="config", help="Inspect and validate configuration.")
 
