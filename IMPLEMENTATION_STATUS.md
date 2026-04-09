@@ -4,12 +4,15 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 4 - ONNX export (not started).
+Phase 5 - ONNX validation (not started).
 
 ## Current task
 
-Implement `export/`: PyTorch -> ONNX for static and dynamic shapes, configurable opset, named
-inputs/outputs, dynamic axes derived from the `ModelSignature`, export metadata, and clean failures.
+Implement `onnx/`: ONNX checker, graph validation, shape inference, ONNX Runtime execution, and
+PyTorch-vs-ONNX comparison (max/mean absolute error, relative error, cosine similarity) with
+configurable tolerances. **Must run the graph at min/opt/max shapes**, not just the traced shape,
+to catch traced-in constants; use `trtship_fixtures.models:baked_batch` as the regression case (see
+D-019).
 
 ## Completed phases
 
@@ -45,13 +48,23 @@ inputs/outputs, dynamic axes derived from the `ModelSignature`, export metadata,
   - Not verified: models with very large parameter counts (hashing and inspection are streaming and
     linear, but this has not been timed on a ResNet-50/BERT-size model).
 
+- **Phase 4** - ONNX export. (2026-09-19)
+  - `export/onnx_export.py` (`export_onnx`, `check_onnx_signature`, `ExportResult`,
+    `ExportMetadata`), `trtship export`, `utils.fs.publish_new`, `models.symbol_ranges`, optional
+    `dynamo` extra (onnxscript), `docs/pipeline/export.md`.
+  - Verified on CPU: 330 tests total (both exporters run here; the `torch.export` tests need
+    `onnxscript`, installed in the dev venv, and skip with a reason without it), ruff, mypy --strict.
+  - Known limitation (documented, D-019): verification is structural; a dimension frozen inside the
+    graph body is not detected until Phase 5 runs the graph at several shapes.
+  - Not verified: models over 2 GiB (unsupported, fails with a clear error), custom op domains.
+
 ## Remaining tasks
 
-Phases 4-26 per `PROJECT_PLAN.md`.
+Phases 5-26 per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: 292 (unit), `make check` green
+- Passing: see `make check` (330 after Phase 4)
 - Failing: none
 - Skipped: none yet (no GPU-marked tests exist; the marker/skip machinery is in
   `tests/conftest.py` and skips with an explicit reason when no GPU/TensorRT is usable)
@@ -98,5 +111,4 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 2: model abstraction (`models/`), starting with the fixture models the rest of the test suite
-will build on.
+Phase 5: ONNX validation (`onnx/`), starting with the multi-shape ORT-vs-PyTorch comparison.

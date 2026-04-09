@@ -136,3 +136,22 @@ module's output size during one forward pass and labels it an upper bound, along
 sizes it was taken at. It is `null` with an explanatory note when unmeasurable (e.g. scripted
 modules, which reject forward hooks). Real memory numbers come from the benchmark stage (Phase 10),
 which measures the actual engine on the actual device.
+
+## D-019 - Two ONNX exporters, structural verification only (2026-09-19)
+
+torch 2.14 makes the `torch.export`-based exporter the default and deprecates the TorchScript-tracing
+exporter. Both work here and both are supported (`export.dynamo`). The tracing exporter stays the
+default because it needs no extra dependency (the newer one needs `onnxscript`, an optional
+`dynamo` extra) and its per-tensor `dynamic_axes` semantics are simple; revisit the default when
+upstream removes it.
+
+Export verifies the graph against the inferred signature, but that is a check of *declared* shapes.
+A probe showed `int(x.shape[0])` inside `forward` bakes the traced batch size into the graph while
+the declared output dim stays dynamic, and onnxruntime returned batch 4 for a batch-2 input. Only
+running at several shapes exposes this, so the ONNX validation stage (Phase 5) must execute the
+graph at min/opt/max and compare with PyTorch; `trtship_fixtures.models:baked_batch` is the
+regression model for it. The documentation and error hints say so explicitly rather than implying
+export success proves dynamic-shape correctness.
+
+Export never overwrites its destination (atomic hard-link publish), which is the immutability rule
+applied at the lowest level; cache reuse across identical inputs is the artifact store's job.

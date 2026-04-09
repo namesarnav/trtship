@@ -27,6 +27,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Model inspection (`trtship inspect`): parameter counts (total/trainable/frozen, shared weights
   counted once), buffers, exact weight bytes, an activation upper bound measured from a real
   forward pass, module tree, and I/O signature, as versioned JSON and a human-readable report.
+- ONNX export (`trtship export`): TorchScript-tracing and `torch.export` exporters, dynamic axes
+  from the model signature, opset/constant-folding settings, structural verification of the graph
+  against the signature, embedded traceability metadata, atomic no-overwrite publishing, captured
+  exporter warnings, and clean unsupported-operator errors.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 
 #### Notes

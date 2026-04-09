@@ -24,7 +24,8 @@ GPU hardware.
 | Run directories, run IDs, manifest, environment/config snapshots | implemented, tested |
 | Model loading (module / checkpoint / TorchScript), signature inference | implemented, tested |
 | Model inspection reports (`trtship inspect`) | implemented, tested |
-| ONNX export, validation, optimization | planned |
+| ONNX export (`trtship export`) | implemented, tested |
+| ONNX validation, optimization | planned |
 | TensorRT engine builder, INT8 calibration | planned |
 | Numerical validation, benchmarking, reports | planned |
 | Triton repository, server management, clients | planned |
@@ -44,6 +45,7 @@ cd trtship
 uv sync                       # GPU machines: PyTorch from PyPI (CUDA build on Linux)
 uv sync --extra trt           # add the TensorRT Python bindings (NVIDIA GPU environment)
 uv sync --extra triton        # add the Triton HTTP/gRPC clients
+uv sync --extra dynamo        # add onnxscript for the torch.export-based ONNX exporter
 ```
 
 Machines without a GPU can avoid the multi-GB CUDA wheels with the CPU-only PyTorch build:
@@ -60,6 +62,7 @@ trtship doctor                          # what can this machine run?
 trtship doctor --require tensorrt       # exit code 3 unless TensorRT is usable
 trtship config validate my-config.yaml  # validate a config; --set key=value to override
 trtship inspect my-config.yaml          # parameters, memory estimate, I/O signature, module tree
+trtship export my-config.yaml -o model.onnx   # ONNX export, verified against the model signature
 ```
 
 `trtship doctor` reports Python, PyTorch (and whether it can use CUDA), the NVIDIA driver and GPUs,
