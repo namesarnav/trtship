@@ -4,15 +4,14 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 5 - ONNX validation (not started).
+Phase 6 - ONNX optimization (not started).
 
 ## Current task
 
-Implement `onnx/`: ONNX checker, graph validation, shape inference, ONNX Runtime execution, and
-PyTorch-vs-ONNX comparison (max/mean absolute error, relative error, cosine similarity) with
-configurable tolerances. **Must run the graph at min/opt/max shapes**, not just the traced shape,
-to catch traced-in constants; use `trtship_fixtures.models:baked_batch` as the regression case (see
-D-019).
+Implement `onnx/optimize.py`: safe, non-destructive graph optimization producing `optimized.onnx`
+next to the untouched original, recording file sizes, graph statistics before/after, the
+optimization configuration, and hashes. Every optimized model must pass the Phase 5 validation
+against the original/PyTorch before it is accepted.
 
 ## Completed phases
 
@@ -58,13 +57,26 @@ D-019).
     graph body is not detected until Phase 5 runs the graph at several shapes.
   - Not verified: models over 2 GiB (unsupported, fails with a clear error), custom op domains.
 
+- **Phase 5** - ONNX validation. (2026-09-19)
+  - `validation/metrics.py` (shared comparison metrics), `onnx/graph.py` (checker, strict shape
+    inference, statistics), `onnx/runtime.py` (CPU-only ORT), `onnx/validate.py` (multi-shape
+    PyTorch-vs-ONNX comparison, `OnnxValidationReport`), `reporting/validation_report.py`,
+    `trtship validate onnx`, `docs/pipeline/onnx-validation.md`.
+  - Verified on CPU: 386 tests total, ruff, mypy --strict. Metrics are asserted against
+    hand-computed values. The `baked_batch` model is caught exactly as predicted (passes at the
+    traced size, fails at min and max).
+  - Bug found and fixed by tests: `onnx.checker` raises `InferenceError` (not `ValidationError`) for
+    type-inconsistent graphs; that would have escaped as exit 70 instead of 6.
+  - Not verified: agreement on real trained models (only fixtures so far; ResNet/BERT in Phase 22);
+    large-shape performance of the `max` point.
+
 ## Remaining tasks
 
-Phases 5-26 per `PROJECT_PLAN.md`.
+Phases 6-26 per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (330 after Phase 4)
+- Passing: see `make check` (386 after Phase 5)
 - Failing: none
 - Skipped: none yet (no GPU-marked tests exist; the marker/skip machinery is in
   `tests/conftest.py` and skips with an explicit reason when no GPU/TensorRT is usable)
@@ -111,4 +123,4 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 5: ONNX validation (`onnx/`), starting with the multi-shape ORT-vs-PyTorch comparison.
+Phase 6: ONNX optimization (`onnx/optimize.py`).

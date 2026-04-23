@@ -155,3 +155,22 @@ export success proves dynamic-shape correctness.
 
 Export never overwrites its destination (atomic hard-link publish), which is the immutability rule
 applied at the lowest level; cache reuse across identical inputs is the artifact store's job.
+
+## D-020 - ONNX validation design (2026-09-19)
+
+- **Multiple shape points.** The graph is run at the profile's min/opt/max (or the probe sizes),
+  because D-019 showed a traced-in constant passes every declared-shape check. Verified: the
+  `baked_batch` model passes at `opt` and fails at `min` (ORT cannot reshape) and `max` (wrong output
+  shape).
+- **ORT on the CPU provider with graph optimizations disabled**, so the exported artifact itself is
+  what is validated and no other backend can be substituted silently. ORT's own error logging is
+  silenced (fatal only) because failures are surfaced as `ValidationFailedError`.
+- **A report is always produced.** Comparison failures are recorded in the report;
+  `raise_for_failure()` converts them to exit code 6 afterwards. The CLI writes `-o` before raising
+  so a failing run keeps its evidence.
+- **Metric definitions are explicit** (see docs/pipeline/onnx-validation.md). "Top-k agreement" means
+  the reference's top-1 class lies in the candidate's top-k, which is the decision-quality reading of
+  agreement. Per-sample minimum cosine is used for pass/fail because a global cosine hides a single
+  wrong sample.
+- **Comparison code is shared** in `trtship.validation` so Phase 9 applies identical metrics to
+  TensorRT engines.

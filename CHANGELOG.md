@@ -31,6 +31,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   from the model signature, opset/constant-folding settings, structural verification of the graph
   against the signature, embedded traceability metadata, atomic no-overwrite publishing, captured
   exporter warnings, and clean unsupported-operator errors.
+- ONNX validation (`trtship validate onnx`): official checker with strict shape inference, graph
+  statistics, ONNX Runtime execution pinned to the CPU provider with graph optimizations off, and a
+  PyTorch-vs-ONNX comparison at the profile's min/opt/max shapes (absolute/relative error, cosine
+  similarity, top-1/top-k agreement, KL divergence, distribution stats) with configurable tolerances.
+  Catches shapes frozen into the graph during tracing.
+- Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 
 #### Notes

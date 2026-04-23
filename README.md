@@ -25,7 +25,8 @@ GPU hardware.
 | Model loading (module / checkpoint / TorchScript), signature inference | implemented, tested |
 | Model inspection reports (`trtship inspect`) | implemented, tested |
 | ONNX export (`trtship export`) | implemented, tested |
-| ONNX validation, optimization | planned |
+| ONNX validation (`trtship validate onnx`) | implemented, tested |
+| ONNX optimization | planned |
 | TensorRT engine builder, INT8 calibration | planned |
 | Numerical validation, benchmarking, reports | planned |
 | Triton repository, server management, clients | planned |
@@ -63,6 +64,7 @@ trtship doctor --require tensorrt       # exit code 3 unless TensorRT is usable
 trtship config validate my-config.yaml  # validate a config; --set key=value to override
 trtship inspect my-config.yaml          # parameters, memory estimate, I/O signature, module tree
 trtship export my-config.yaml -o model.onnx   # ONNX export, verified against the model signature
+trtship validate onnx my-config.yaml model.onnx   # graph checks + PyTorch-vs-ONNX at min/opt/max shapes
 ```
 
 `trtship doctor` reports Python, PyTorch (and whether it can use CUDA), the NVIDIA driver and GPUs,
