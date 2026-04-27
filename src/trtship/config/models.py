@@ -140,9 +140,26 @@ class ExportConfig(_Base):
     dynamo: bool = False  # torch.export-based exporter instead of TorchScript tracing
 
 
+OptimizePass = Literal[
+    "extract_constants",
+    "eliminate_identity",
+    "deduplicate_initializers",
+    "eliminate_dead_nodes",
+    "eliminate_unused_initializers",
+    "infer_shapes",
+]
+
+
 class OptimizeConfig(_Base):
     enabled: bool = True
-    passes: list[str] | None = None  # None selects the default safe pass set
+    passes: list[OptimizePass] | None = None  # None runs every pass, in the canonical order
+
+    @field_validator("passes")
+    @classmethod
+    def _unique_passes(cls, value: list[OptimizePass] | None) -> list[OptimizePass] | None:
+        if value is not None and len(set(value)) != len(value):
+            raise ValueError("passes must be unique")
+        return value
 
 
 class ShapeRange(_Base):
