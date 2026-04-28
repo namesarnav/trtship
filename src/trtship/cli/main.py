@@ -6,7 +6,15 @@ from typing import Annotated
 
 import typer
 
-from trtship.cli.commands import config_cmd, doctor, export_cmd, inspect_cmd, validate_cmd, version
+from trtship.cli.commands import (
+    config_cmd,
+    doctor,
+    export_cmd,
+    inspect_cmd,
+    optimize_cmd,
+    validate_cmd,
+    version,
+)
 from trtship.cli.guard import handle_errors
 from trtship.logging import configure_logging
 
@@ -50,6 +58,9 @@ app.command("inspect", help="Report a model's architecture, parameters, memory a
 )
 app.command("export", help="Export the model to ONNX and verify the graph.")(
     handle_errors(export_cmd.export_command)
+)
+app.command("optimize", help="Write an optimized copy of an ONNX model.")(
+    handle_errors(optimize_cmd.optimize_command)
 )
 app.add_typer(config_cmd.config_app, name="config", help="Inspect and validate configuration.")
 app.add_typer(validate_cmd.validate_app, name="validate", help="Validate exported artifacts.")
