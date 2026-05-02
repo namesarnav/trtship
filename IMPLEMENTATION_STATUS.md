@@ -4,14 +4,17 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 6 - ONNX optimization (not started).
+Phase 7 - TensorRT engine builder (not started).
 
 ## Current task
 
-Implement `onnx/optimize.py`: safe, non-destructive graph optimization producing `optimized.onnx`
-next to the untouched original, recording file sizes, graph statistics before/after, the
-optimization configuration, and hashes. Every optimized model must pass the Phase 5 validation
-against the original/PyTorch before it is accepted.
+Implement `tensorrt/`: engine building from an ONNX file (FP32/FP16/INT8 flags, workspace,
+optimization profiles for dynamic shapes, min/opt/max, input/output bindings, timing cache), engine
+inspection into an `EngineInfo` value object, TensorRT-version differences, and clear
+unsupported-operation reporting. Runs only where TensorRT and a supported GPU exist; everything else
+(config translation, profile construction from `TensorRTConfig`, `EngineInfo`, error reporting from
+parser messages) must be unit-testable with a fake `tensorrt` module. **BLOCKED BY ENVIRONMENT** for
+real execution (see Environment limitations).
 
 ## Completed phases
 
@@ -70,13 +73,22 @@ against the original/PyTorch before it is accepted.
   - Not verified: agreement on real trained models (only fixtures so far; ResNet/BERT in Phase 22);
     large-shape performance of the `max` point.
 
+- **Phase 6** - ONNX optimization. (2026-09-19)
+  - `onnx/optimize.py` (six passes, `optimize_onnx`, `OptimizeResult`), `trtship optimize`,
+    `OptimizePass` config type, `docs/pipeline/optimization.md`.
+  - Verified on CPU: 418 tests total, ruff, mypy --strict. Passes are checked by running ONNX
+    Runtime before and after on hand-built graphs, including an `Identity` whose output is read
+    inside an `If` subgraph; real exports are checked with the Phase 5 validation.
+  - Known limits (documented): passes are conservative and do little on clean exports; only
+    top-level nodes are rewritten.
+
 ## Remaining tasks
 
-Phases 6-26 per `PROJECT_PLAN.md`.
+Phases 7-26 per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (386 after Phase 5)
+- Passing: see `make check` (418 after Phase 6)
 - Failing: none
 - Skipped: none yet (no GPU-marked tests exist; the marker/skip machinery is in
   `tests/conftest.py` and skips with an explicit reason when no GPU/TensorRT is usable)
@@ -123,4 +135,5 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 6: ONNX optimization (`onnx/optimize.py`).
+Phase 7: TensorRT engine builder (`tensorrt/`), built against the real TensorRT API and unit-tested
+with a fake module; real-hardware verification is blocked by environment.

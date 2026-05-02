@@ -36,6 +36,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   PyTorch-vs-ONNX comparison at the profile's min/opt/max shapes (absolute/relative error, cosine
   similarity, top-1/top-k agreement, KL divergence, distribution stats) with configurable tolerances.
   Catches shapes frozen into the graph during tracing.
+- ONNX optimization (`trtship optimize`): non-destructive, subgraph-safe passes (constant
+  extraction, identity/dead-node elimination, initializer de-duplication and cleanup, shape
+  inference) that write a new file with recorded hashes, sizes and before/after graph statistics,
+  reject any pass that changes the model interface, and validate the result against PyTorch.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 

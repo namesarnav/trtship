@@ -174,3 +174,16 @@ applied at the lowest level; cache reuse across identical inputs is the artifact
   wrong sample.
 - **Comparison code is shared** in `trtship.validation` so Phase 9 applies identical metrics to
   TensorRT engines.
+
+## D-021 - Own conservative ONNX passes instead of a third-party optimizer (2026-09-19)
+
+Considered `onnxoptimizer`, `onnx-simplifier`, and ONNX Runtime's offline optimizer. ONNX Runtime's
+higher levels emit vendor-domain fused operators that TensorRT cannot parse, and the two packages
+add native dependencies whose compatibility with the very new onnx used here is not something this
+project can guarantee. Six small passes are implemented directly on the protobuf instead: they are
+transparent, dependency-free, testable against ONNX Runtime before/after, and safe with subgraphs
+(an outer-scope name read inside an `If` branch is renamed or kept correctly, which is tested).
+TensorRT performs the heavy optimization. Every optimized file is interface-checked against the
+model signature before it is published, and the CLI validates it numerically by default.
+Trade-off: the passes do little on already-clean exports; that is accepted and documented rather
+than overstated.
