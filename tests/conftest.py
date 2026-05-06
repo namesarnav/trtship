@@ -10,6 +10,8 @@ from typing import Any
 import pytest
 import yaml
 
+from trtship.artifacts import RunDirectory
+from trtship.config import TrtshipConfig
 from trtship.utils import env
 
 # Rich reads these when a Console is created (at CLI import time). A developer's or CI's
@@ -46,6 +48,27 @@ def write_config(tmp_path: Path) -> Callable[[dict[str, Any], str], Path]:
         return path
 
     return _write
+
+
+@pytest.fixture(scope="session")
+def environment_report() -> env.EnvironmentReport:
+    """One real environment probe per test session (probing torch/docker takes seconds)."""
+    return env.probe_all()
+
+
+@pytest.fixture
+def make_run(
+    tmp_path: Path, environment_report: env.EnvironmentReport
+) -> Callable[..., RunDirectory]:
+    """Factory for real run directories under ``tmp_path``."""
+
+    def _make(run_id: str = "run1", root: Path | None = None) -> RunDirectory:
+        config = TrtshipConfig.model_validate(minimal_config_dict())
+        return RunDirectory.create(
+            root or tmp_path / "runs", config, environment_report, run_id=run_id
+        )
+
+    return _make
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
