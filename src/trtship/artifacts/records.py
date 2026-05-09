@@ -81,6 +81,7 @@ class RunManifest(BaseModel):
     trtship_version: str
     status: RunStatus = RunStatus.CREATED
     config_sha256: str
+    seed: int = 0
     model_sha256: str | None = None
     stages: dict[str, StageRecord] = Field(default_factory=dict)
     artifacts: dict[str, ArtifactRecord] = Field(default_factory=dict)

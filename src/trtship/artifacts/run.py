@@ -85,6 +85,7 @@ class RunDirectory:
                 updated_at=now,
                 trtship_version=__version__,
                 config_sha256=config_hash(config),
+                seed=config.seed,
             )
         )
         return run
