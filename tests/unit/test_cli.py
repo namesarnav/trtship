@@ -9,53 +9,18 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
+from tests.helpers import fake_environment
 from trtship import __version__
 from trtship.cli.main import app
 from trtship.utils import env
-from trtship.utils.env import Capability, CapabilityStatus, EnvironmentReport
-from trtship.utils.timeutil import utc_now
+from trtship.utils.env import EnvironmentReport
 
 runner = CliRunner()
 
 
-def _fake_report(*, gpu_ok: bool, core_ok: bool = True) -> EnvironmentReport:
-    def cap(
-        name: str, ok: bool, version: str | None = None, detail: str | None = None
-    ) -> Capability:
-        return Capability(
-            name=name,
-            status=CapabilityStatus.OK if ok else CapabilityStatus.MISSING,
-            version=version if ok else None,
-            detail=detail,
-        )
-
-    caps = [
-        cap(env.PYTHON, core_ok, "3.12.0"),
-        cap(env.TORCH, True, "2.0"),
-        cap(env.TORCH_CUDA, gpu_ok, "12.4"),
-        cap(env.NVIDIA_GPU, gpu_ok, "550", "gpu"),
-        cap(env.CUDA_TOOLKIT, True, "12.4"),
-        cap(env.TENSORRT, gpu_ok, "10.3"),
-        cap(env.ONNX, True, "1.16"),
-        cap(env.ONNXRUNTIME, True, "1.18"),
-        cap(env.TRITON_CLIENT, False, None, "not installed (pip install 'trtship[triton]')"),
-        cap(env.DOCKER, True, "27"),
-        cap(env.DOCKER_NVIDIA_RUNTIME, gpu_ok),
-        cap(env.TRITON_SERVER, False),
-    ]
-    return EnvironmentReport(
-        captured_at=utc_now(),
-        trtship_version=__version__,
-        python_version="3.12.0",
-        platform="test",
-        capabilities=caps,
-        gpus=[],
-    )
-
-
 @pytest.fixture
 def no_gpu(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(env, "probe_all", lambda: _fake_report(gpu_ok=False))
+    monkeypatch.setattr(env, "probe_all", lambda: fake_environment(gpu_ok=False))
 
 
 def test_help_lists_commands() -> None:
@@ -100,7 +65,7 @@ def test_doctor_require_fails_with_exit_3(no_gpu: None) -> None:
 
 
 def test_doctor_require_passes_when_present(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(env, "probe_all", lambda: _fake_report(gpu_ok=True))
+    monkeypatch.setattr(env, "probe_all", lambda: fake_environment(gpu_ok=True))
     assert (
         runner.invoke(app, ["doctor", "--require", "tensorrt", "--require", "nvidia_gpu"]).exit_code
         == 0
@@ -108,7 +73,7 @@ def test_doctor_require_passes_when_present(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_doctor_fails_when_core_dependency_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(env, "probe_all", lambda: _fake_report(gpu_ok=True, core_ok=False))
+    monkeypatch.setattr(env, "probe_all", lambda: fake_environment(gpu_ok=True, core_ok=False))
     result = runner.invoke(app, ["doctor"])
     assert result.exit_code == 3
     assert "python" in result.output
