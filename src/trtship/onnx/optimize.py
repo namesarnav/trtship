@@ -66,6 +66,7 @@ class OptimizeResult(BaseModel):
     sha256: str
     size_bytes: int
     passes: list[PassResult]
+    # True if a pass that alters the graph (not just its shape metadata) changed something.
     changed: bool
     before: GraphReport
     after: GraphReport
@@ -338,7 +339,7 @@ def optimize_onnx(
         sha256=sha,
         size_bytes=size,
         passes=results,
-        changed=any(r.changes for r in results),
+        changed=any(r.changes for r in results if r.name != "infer_shapes"),
         before=before,
         after=after,
     )

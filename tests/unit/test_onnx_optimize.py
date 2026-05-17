@@ -341,6 +341,7 @@ def test_a_model_with_nothing_to_optimize_is_unchanged_and_the_run_is_idempotent
     _, signature = export_to(config, tmp_path / "orig.onnx")
     first = optimize_onnx(tmp_path / "orig.onnx", tmp_path / "opt1.onnx", signature)
     assert first.before.op_counts == first.after.op_counts
+    assert first.changed is False  # shape metadata alone does not count as a change
     assert first.after.node_count == first.before.node_count
 
     config2 = build_config(
