@@ -1,0 +1,917 @@
+{
+  "$defs": {
+    "ArtifactsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "cache_dir": {
+          "format": "path",
+          "title": "Cache Dir",
+          "type": "string"
+        },
+        "reuse_cache": {
+          "default": true,
+          "title": "Reuse Cache",
+          "type": "boolean"
+        },
+        "root": {
+          "format": "path",
+          "title": "Root",
+          "type": "string"
+        }
+      },
+      "title": "ArtifactsConfig",
+      "type": "object"
+    },
+    "BenchmarkConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "batch_sizes": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Batch Sizes",
+          "type": "array"
+        },
+        "concurrency": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Concurrency",
+          "type": "array"
+        },
+        "iters": {
+          "default": 500,
+          "minimum": 1,
+          "title": "Iters",
+          "type": "integer"
+        },
+        "precisions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Precision"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Precisions"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "warmup_iters": {
+          "default": 50,
+          "minimum": 0,
+          "title": "Warmup Iters",
+          "type": "integer"
+        }
+      },
+      "title": "BenchmarkConfig",
+      "type": "object"
+    },
+    "CalibrationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_synthetic": {
+          "default": false,
+          "title": "Allow Synthetic",
+          "type": "boolean"
+        },
+        "batch_size": {
+          "default": 8,
+          "minimum": 1,
+          "title": "Batch Size",
+          "type": "integer"
+        },
+        "cache_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cache Path"
+        },
+        "dataset": {
+          "$ref": "#/$defs/CalibrationDatasetKind"
+        },
+        "glob": {
+          "default": "*",
+          "title": "Glob",
+          "type": "string"
+        },
+        "input_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Name"
+        },
+        "method": {
+          "default": "entropy2",
+          "enum": [
+            "entropy2",
+            "minmax"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "num_samples": {
+          "default": 512,
+          "minimum": 1,
+          "title": "Num Samples",
+          "type": "integer"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "preprocessing": {
+          "$ref": "#/$defs/PreprocessingConfig"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "required": [
+        "dataset"
+      ],
+      "title": "CalibrationConfig",
+      "type": "object"
+    },
+    "CalibrationDatasetKind": {
+      "enum": [
+        "images",
+        "numpy",
+        "synthetic"
+      ],
+      "title": "CalibrationDatasetKind",
+      "type": "string"
+    },
+    "DType": {
+      "enum": [
+        "float32",
+        "float16",
+        "int64",
+        "int32",
+        "int8",
+        "uint8",
+        "bool"
+      ],
+      "title": "DType",
+      "type": "string"
+    },
+    "DynamicBatchingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "max_queue_delay_us": {
+          "default": 100,
+          "minimum": 0,
+          "title": "Max Queue Delay Us",
+          "type": "integer"
+        },
+        "preferred_batch_sizes": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Preferred Batch Sizes",
+          "type": "array"
+        }
+      },
+      "title": "DynamicBatchingConfig",
+      "type": "object"
+    },
+    "ExportConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "constant_folding": {
+          "default": true,
+          "title": "Constant Folding",
+          "type": "boolean"
+        },
+        "dynamo": {
+          "default": false,
+          "title": "Dynamo",
+          "type": "boolean"
+        },
+        "opset": {
+          "default": 17,
+          "maximum": 23,
+          "minimum": 11,
+          "title": "Opset",
+          "type": "integer"
+        }
+      },
+      "title": "ExportConfig",
+      "type": "object"
+    },
+    "ModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "factory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Factory"
+        },
+        "factory_kwargs": {
+          "additionalProperties": true,
+          "title": "Factory Kwargs",
+          "type": "object"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/TensorSpec"
+          },
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "kind": {
+          "$ref": "#/$defs/ModelKind"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "output_names": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Names"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "python_path": {
+          "items": {
+            "format": "path",
+            "type": "string"
+          },
+          "title": "Python Path",
+          "type": "array"
+        },
+        "trust_source": {
+          "default": false,
+          "title": "Trust Source",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "inputs"
+      ],
+      "title": "ModelConfig",
+      "type": "object"
+    },
+    "ModelKind": {
+      "enum": [
+        "module",
+        "checkpoint",
+        "torchscript"
+      ],
+      "title": "ModelKind",
+      "type": "string"
+    },
+    "OptimizationProfile": {
+      "additionalProperties": false,
+      "description": "A TensorRT optimization profile: a shape range per dynamic input.",
+      "properties": {
+        "inputs": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ShapeRange"
+          },
+          "minProperties": 1,
+          "title": "Inputs",
+          "type": "object"
+        }
+      },
+      "required": [
+        "inputs"
+      ],
+      "title": "OptimizationProfile",
+      "type": "object"
+    },
+    "OptimizeConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "passes": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "extract_constants",
+                  "eliminate_identity",
+                  "deduplicate_initializers",
+                  "eliminate_dead_nodes",
+                  "eliminate_unused_initializers",
+                  "infer_shapes"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Passes"
+        }
+      },
+      "title": "OptimizeConfig",
+      "type": "object"
+    },
+    "Precision": {
+      "enum": [
+        "fp32",
+        "fp16",
+        "int8"
+      ],
+      "title": "Precision",
+      "type": "string"
+    },
+    "PreprocessingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "center_crop": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Center Crop"
+        },
+        "channel_order": {
+          "default": "rgb",
+          "enum": [
+            "rgb",
+            "bgr"
+          ],
+          "title": "Channel Order",
+          "type": "string"
+        },
+        "mean": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean"
+        },
+        "rescale": {
+          "default": 0.00392156862745098,
+          "title": "Rescale",
+          "type": "number"
+        },
+        "resize": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resize"
+        },
+        "std": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std"
+        }
+      },
+      "title": "PreprocessingConfig",
+      "type": "object"
+    },
+    "ShapeRange": {
+      "additionalProperties": false,
+      "properties": {
+        "max": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Max",
+          "type": "array"
+        },
+        "min": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Min",
+          "type": "array"
+        },
+        "opt": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Opt",
+          "type": "array"
+        }
+      },
+      "required": [
+        "min",
+        "opt",
+        "max"
+      ],
+      "title": "ShapeRange",
+      "type": "object"
+    },
+    "TensorRTConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "device_index": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Device Index",
+          "type": "integer"
+        },
+        "optimization_level": {
+          "default": 3,
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Optimization Level",
+          "type": "integer"
+        },
+        "precisions": {
+          "items": {
+            "$ref": "#/$defs/Precision"
+          },
+          "minItems": 1,
+          "title": "Precisions",
+          "type": "array"
+        },
+        "profiles": {
+          "items": {
+            "$ref": "#/$defs/OptimizationProfile"
+          },
+          "title": "Profiles",
+          "type": "array"
+        },
+        "timing_cache_path": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timing Cache Path"
+        },
+        "workspace_mb": {
+          "default": 4096,
+          "minimum": 16,
+          "title": "Workspace Mb",
+          "type": "integer"
+        }
+      },
+      "title": "TensorRTConfig",
+      "type": "object"
+    },
+    "TensorSpec": {
+      "additionalProperties": false,
+      "description": "A named tensor: dtype and shape. String dims are symbolic (dynamic); ints are static.\n\n``value_range`` bounds the values of randomly generated example data for inputs: uniform\nfloats in ``[lo, hi)``, or integers in ``[lo, hi)``. It is what makes integer inputs such as\ntoken ids safe to fabricate (an out-of-vocabulary id would crash an embedding lookup).",
+      "properties": {
+        "dtype": {
+          "$ref": "#/$defs/DType",
+          "default": "float32"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "shape": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Shape",
+          "type": "array"
+        },
+        "value_range": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value Range"
+        }
+      },
+      "required": [
+        "name",
+        "shape"
+      ],
+      "title": "TensorSpec",
+      "type": "object"
+    },
+    "Tolerance": {
+      "additionalProperties": false,
+      "description": "Acceptance thresholds for comparing a candidate's outputs against a reference.",
+      "properties": {
+        "atol": {
+          "minimum": 0,
+          "title": "Atol",
+          "type": "number"
+        },
+        "cosine_min": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Cosine Min",
+          "type": "number"
+        },
+        "rtol": {
+          "minimum": 0,
+          "title": "Rtol",
+          "type": "number"
+        },
+        "top1_agreement_min": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Top1 Agreement Min"
+        },
+        "topk": {
+          "default": 5,
+          "minimum": 1,
+          "title": "Topk",
+          "type": "integer"
+        },
+        "topk_agreement_min": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topk Agreement Min"
+        }
+      },
+      "required": [
+        "atol",
+        "rtol",
+        "cosine_min"
+      ],
+      "title": "Tolerance",
+      "type": "object"
+    },
+    "TritonConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "container_name": {
+          "default": "trtship-triton",
+          "title": "Container Name",
+          "type": "string"
+        },
+        "dynamic_batching": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DynamicBatchingConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "grpc_port": {
+          "default": 8001,
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Grpc Port",
+          "type": "integer"
+        },
+        "http_port": {
+          "default": 8000,
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Http Port",
+          "type": "integer"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image"
+        },
+        "instance_count": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Instance Count",
+          "type": "integer"
+        },
+        "instance_gpus": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Instance Gpus",
+          "type": "array"
+        },
+        "max_batch_size": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Batch Size"
+        },
+        "metrics_port": {
+          "default": 8002,
+          "maximum": 65535,
+          "minimum": 1,
+          "title": "Metrics Port",
+          "type": "integer"
+        },
+        "model_version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Model Version",
+          "type": "integer"
+        },
+        "precision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Precision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "repository_dir": {
+          "format": "path",
+          "title": "Repository Dir",
+          "type": "string"
+        },
+        "startup_timeout_s": {
+          "default": 180.0,
+          "exclusiveMinimum": 0,
+          "title": "Startup Timeout S",
+          "type": "number"
+        }
+      },
+      "title": "TritonConfig",
+      "type": "object"
+    },
+    "ValidationConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "num_samples": {
+          "default": 8,
+          "minimum": 1,
+          "title": "Num Samples",
+          "type": "integer"
+        },
+        "onnx_tolerance": {
+          "$ref": "#/$defs/Tolerance"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "tolerances": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Tolerance"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/Precision"
+          },
+          "title": "Tolerances",
+          "type": "object"
+        }
+      },
+      "title": "ValidationConfig",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "$ref": "#/$defs/ArtifactsConfig"
+    },
+    "benchmark": {
+      "$ref": "#/$defs/BenchmarkConfig"
+    },
+    "calibration": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalibrationConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "export": {
+      "$ref": "#/$defs/ExportConfig"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelConfig"
+    },
+    "optimize": {
+      "$ref": "#/$defs/OptimizeConfig"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seed": {
+      "default": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "tensorrt": {
+      "$ref": "#/$defs/TensorRTConfig"
+    },
+    "triton": {
+      "$ref": "#/$defs/TritonConfig"
+    },
+    "validation": {
+      "$ref": "#/$defs/ValidationConfig"
+    }
+  },
+  "required": [
+    "model"
+  ],
+  "title": "trtship configuration",
+  "type": "object"
+}

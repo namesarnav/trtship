@@ -26,6 +26,7 @@ from trtship.config.models import (
     ValidationConfig,
     config_hash,
 )
+from trtship.config.schema import config_schema, config_schema_json
 from trtship.specs import DType, TensorSpec
 
 __all__ = [
@@ -50,6 +51,8 @@ __all__ = [
     "ValidationConfig",
     "apply_overrides",
     "config_hash",
+    "config_schema",
+    "config_schema_json",
     "dump_config_yaml",
     "env_overrides",
     "load_config",

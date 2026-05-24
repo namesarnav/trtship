@@ -9,7 +9,13 @@ from pathlib import Path
 import pytest
 from rich.console import Console
 
-from trtship.logging import configure_logging, get_logger, log_context
+from trtship.logging import (
+    attach_log_file,
+    configure_logging,
+    detach_log_file,
+    get_logger,
+    log_context,
+)
 from trtship.logging.setup import _context
 
 
@@ -97,3 +103,20 @@ def test_rich_console_is_used_by_default() -> None:
     configure_logging(level="INFO", console=Console(file=buffer, width=100))
     get_logger("x").info("plain message")
     assert "plain message" in buffer.getvalue()
+
+
+def test_attach_log_file_records_info_even_when_the_console_is_quiet(tmp_path: Path) -> None:
+    configure_logging(level="WARNING", json_logs=True)
+    log_file = tmp_path / "logs" / "run.jsonl"
+    handler = attach_log_file(log_file)
+    try:
+        with log_context(run_id="r9", stage="export"):
+            get_logger("t").info("stage detail")
+            get_logger("t").debug("too verbose")
+    finally:
+        detach_log_file(handler)
+    get_logger("t").info("after detach")
+    records = [json.loads(line) for line in log_file.read_text().splitlines()]
+    assert [r["message"] for r in records] == ["stage detail"]
+    assert records[0]["run_id"] == "r9"
+    assert records[0]["stage"] == "export"

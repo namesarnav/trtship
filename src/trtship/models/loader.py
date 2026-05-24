@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -100,6 +101,7 @@ def resolve_device(device: str) -> torch.device:
 def load_model(config: ModelConfig, *, device: str = "cpu") -> LoadedModel:
     """Load ``config`` onto ``device`` in eval mode."""
     target = resolve_device(device)
+    _extend_sys_path(config.python_path)
     loaders: dict[ModelKind, Callable[[ModelConfig, torch.device], nn.Module]] = {
         ModelKind.MODULE: _load_module,
         ModelKind.CHECKPOINT: _load_checkpoint,
@@ -129,6 +131,20 @@ def load_model(config: ModelConfig, *, device: str = "cpu") -> LoadedModel:
 
 
 # --------------------------------------------------------------------------- kinds
+
+
+def _extend_sys_path(paths: Sequence[Path]) -> None:
+    """Make ``model.python_path`` importable. Idempotent; entries stay for the process lifetime so
+    imports performed lazily inside the model keep working."""
+    for path in paths:
+        if not path.is_dir():
+            raise ModelError(
+                f"model.python_path entry is not a directory: {path}",
+                hint="Paths are relative to the config file.",
+            )
+        entry = str(path)
+        if entry not in sys.path:
+            sys.path.insert(0, entry)
 
 
 def _import_factory(spec: str) -> Callable[..., Any]:

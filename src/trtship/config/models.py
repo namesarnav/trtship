@@ -78,6 +78,8 @@ class ModelConfig(_Base):
     path: InputPath | None = None
     factory: str | None = None
     factory_kwargs: dict[str, Any] = Field(default_factory=dict)
+    # Directories added to sys.path before the factory is imported (relative to the config file).
+    python_path: list[InputPath] = Field(default_factory=list)
     inputs: list[TensorSpec] = Field(min_length=1)
     output_names: list[str] | None = None
     trust_source: bool = False

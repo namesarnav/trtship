@@ -84,7 +84,9 @@ def configure_logging(
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
         handler.close()
-    logger.setLevel(numeric)
+    # The logger passes INFO and above so run log files can capture it; each handler filters to its
+    # own level (the console honors --log-level).
+    logger.setLevel(min(numeric, logging.INFO))
     logger.propagate = False
 
     console_handler: logging.Handler
@@ -98,16 +100,38 @@ def configure_logging(
             rich_tracebacks=False,
             markup=False,
         )
+    console_handler.setLevel(numeric)
     console_handler.addFilter(_ContextFilter())
     logger.addHandler(console_handler)
 
     if log_file is not None:
         log_file.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setLevel(numeric)
         file_handler.setFormatter(JsonFormatter())
         file_handler.addFilter(_ContextFilter())
         logger.addHandler(file_handler)
     return logger
+
+
+def attach_log_file(path: Path, *, level: int = logging.INFO) -> logging.Handler:
+    """Also write JSON-lines logs to ``path`` (e.g. a run's log file). Pair with
+    :func:`detach_log_file`."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handler = logging.FileHandler(path, encoding="utf-8")
+    handler.setLevel(level)
+    handler.setFormatter(JsonFormatter())
+    handler.addFilter(_ContextFilter())
+    logger = logging.getLogger(ROOT_LOGGER)
+    if logger.level > level or logger.level == logging.NOTSET:
+        logger.setLevel(level)
+    logger.addHandler(handler)
+    return handler
+
+
+def detach_log_file(handler: logging.Handler) -> None:
+    logging.getLogger(ROOT_LOGGER).removeHandler(handler)
+    handler.close()
 
 
 def get_logger(name: str) -> logging.Logger:

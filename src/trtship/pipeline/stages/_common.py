@@ -10,9 +10,9 @@ from trtship.utils.fs import atomic_write_json
 
 
 def model_slice(config: TrtshipConfig) -> dict[str, Any]:
-    """The model description for cache keys. The weights *path* is excluded: the weights hash,
-    which is part of the key, identifies the content."""
-    return config.model.model_dump(mode="json", exclude={"path"})
+    """The model description for cache keys. Machine-specific paths (weights, ``python_path``) are
+    excluded: the weights hash, which is part of the key, identifies the content."""
+    return config.model.model_dump(mode="json", exclude={"path", "python_path"})
 
 
 def profiles_slice(config: TrtshipConfig) -> list[Any]:

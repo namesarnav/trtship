@@ -1,5 +1,17 @@
 """Structured logging: Rich console output for humans, JSON lines for machines."""
 
-from trtship.logging.setup import configure_logging, get_logger, log_context
+from trtship.logging.setup import (
+    attach_log_file,
+    configure_logging,
+    detach_log_file,
+    get_logger,
+    log_context,
+)
 
-__all__ = ["configure_logging", "get_logger", "log_context"]
+__all__ = [
+    "attach_log_file",
+    "configure_logging",
+    "detach_log_file",
+    "get_logger",
+    "log_context",
+]

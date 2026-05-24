@@ -273,3 +273,16 @@ def test_config_is_immutable(config_dict: dict[str, Any], write_config: Writer) 
 def test_direct_model_validate_without_context(config_dict: dict[str, Any]) -> None:
     cfg = TrtshipConfig.model_validate(config_dict)
     assert cfg.model.name == "tiny"
+
+
+def test_python_path_resolves_against_the_config_directory(
+    config_dict: dict[str, Any], tmp_path: Path
+) -> None:
+    cfg_dir = tmp_path / "configs"
+    cfg_dir.mkdir()
+    config_dict["model"]["python_path"] = ["../src", "/abs/models"]
+    path = cfg_dir / "c.yaml"
+    path.write_text(yaml.safe_dump(config_dict))
+    resolved = load_config(path).model.python_path
+    assert resolved[0].resolve() == (tmp_path / "src").resolve()
+    assert resolved[1] == Path("/abs/models")

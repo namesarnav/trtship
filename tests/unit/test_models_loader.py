@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any
@@ -306,3 +307,36 @@ def test_hash_state_dict_handles_odd_tensors() -> None:
     assert len(hash_state_dict(odd)) == 64
     contiguous = {**odd, "strided": odd["strided"].contiguous()}
     assert hash_state_dict(odd) == hash_state_dict(contiguous)
+
+
+# --------------------------------------------------------------------------- python_path
+
+
+def test_python_path_makes_a_project_local_factory_importable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    package = tmp_path / "my_models"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "net.py").write_text(
+        "import torch\n\ndef build():\n    return torch.nn.Linear(16, 4)\n"
+    )
+    monkeypatch.syspath_prepend(str(tmp_path / "unrelated"))  # ensure a clean restore afterwards
+    config = cfg(factory="my_models.net:build", python_path=[str(tmp_path)])
+    before = list(sys.path)
+    try:
+        model = load_model(config)
+        assert model.run(x_input())["output"].shape == (3, 4)
+        assert sys.path.count(str(tmp_path)) == 1
+        load_model(config)  # idempotent: no duplicate entries
+        assert sys.path.count(str(tmp_path)) == 1
+    finally:
+        sys.path[:] = before
+        sys.modules.pop("my_models", None)
+        sys.modules.pop("my_models.net", None)
+
+
+def test_python_path_entries_must_be_directories(tmp_path: Path) -> None:
+    missing = cfg(python_path=[str(tmp_path / "nope")])
+    with pytest.raises(ModelError, match="not a directory"):
+        load_model(missing)
