@@ -10,8 +10,11 @@ from trtship.cli.commands import (
     config_cmd,
     doctor,
     export_cmd,
+    init_cmd,
     inspect_cmd,
     optimize_cmd,
+    report_cmd,
+    run_cmd,
     validate_cmd,
     version,
 )
@@ -59,6 +62,11 @@ app.command("inspect", help="Report a model's architecture, parameters, memory a
 app.command("export", help="Export the model to ONNX and verify the graph.")(
     handle_errors(export_cmd.export_command)
 )
+app.command("init", help="Write a starter configuration.")(handle_errors(init_cmd.init_command))
+app.command("run", help="Run the pipeline (inspect, export, validate, optimize, ...).")(
+    handle_errors(run_cmd.run_command)
+)
+app.command("report", help="Summarize a run.")(handle_errors(report_cmd.report_command))
 app.command("optimize", help="Write an optimized copy of an ONNX model.")(
     handle_errors(optimize_cmd.optimize_command)
 )

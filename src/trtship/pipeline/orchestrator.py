@@ -113,6 +113,25 @@ def select_stages(
     return list(ordered[start : end + 1])
 
 
+def plan_stages(
+    stages: Sequence[Stage],
+    config: TrtshipConfig,
+    *,
+    from_stage: str | None = None,
+    only: str | None = None,
+    until: str | None = None,
+) -> list[PlannedStage]:
+    """What a run would do, without creating one."""
+    selected = select_stages(order_stages(stages), from_stage=from_stage, only=only, until=until)
+    plan = []
+    for stage in selected:
+        reason = stage.skip_reason(config)
+        plan.append(
+            PlannedStage(name=stage.name, action="skip" if reason else "run", reason=reason)
+        )
+    return plan
+
+
 class Pipeline:
     def __init__(
         self,
@@ -139,14 +158,7 @@ class Pipeline:
     def plan(
         self, *, from_stage: str | None = None, only: str | None = None, until: str | None = None
     ) -> list[PlannedStage]:
-        selected = select_stages(self.ordered, from_stage=from_stage, only=only, until=until)
-        plan = []
-        for stage in selected:
-            reason = stage.skip_reason(self.config)
-            plan.append(
-                PlannedStage(name=stage.name, action="skip" if reason else "run", reason=reason)
-            )
-        return plan
+        return plan_stages(self.ordered, self.config, from_stage=from_stage, only=only, until=until)
 
     def _preflight(self, selected: Sequence[Stage]) -> None:
         """Fail before doing any work if a selected stage needs a capability this machine lacks."""

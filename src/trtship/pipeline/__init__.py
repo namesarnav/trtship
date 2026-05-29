@@ -6,6 +6,7 @@ from trtship.pipeline.orchestrator import (
     PlannedStage,
     StageOutcome,
     order_stages,
+    plan_stages,
     select_stages,
 )
 from trtship.pipeline.stage import Resources, Stage, StageContext, StageResult
@@ -20,5 +21,6 @@ __all__ = [
     "StageOutcome",
     "StageResult",
     "order_stages",
+    "plan_stages",
     "select_stages",
 ]

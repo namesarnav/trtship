@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -11,7 +12,7 @@ from rich.table import Table
 
 from trtship.cli.guard import handle_errors
 from trtship.cli.render import console, emit_json
-from trtship.config import TrtshipConfig, config_hash, load_config
+from trtship.config import TrtshipConfig, config_hash, config_schema_json, load_config
 from trtship.errors import ConfigError
 
 config_app = typer.Typer(no_args_is_help=True, add_completion=False, pretty_exceptions_enable=False)
@@ -64,3 +65,20 @@ def _render_summary(path: Path, config: TrtshipConfig) -> None:
     table.add_row("run root", str(config.artifacts.root))
     table.add_row("config sha256", config_hash(config))
     console.print(table)
+
+
+@config_app.command("schema")
+@handle_errors
+def schema(
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write the schema here instead.")
+    ] = None,
+) -> None:
+    """Print the JSON Schema of the configuration (useful for editor validation)."""
+    text = config_schema_json()
+    if output is None:
+        sys.stdout.write(text)
+    else:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8")
+        console.print(f"wrote {output}")

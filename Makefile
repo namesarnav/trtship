@@ -3,7 +3,7 @@ BIN := $(VENV)/bin
 CPU_TORCH_INDEX := https://download.pytorch.org/whl/cpu
 CPU_MARKERS := not gpu and not tensorrt and not docker and not triton
 
-.PHONY: help install install-cpu lint format format-check typecheck test test-cpu test-cov check clean
+.PHONY: help install install-cpu lint format format-check typecheck test test-cpu test-cov schema check clean
 
 help:  ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -37,6 +37,9 @@ test-cpu:  ## Only tests that need no GPU, TensorRT, Docker, or Triton
 
 test-cov:  ## CPU tests with coverage
 	$(BIN)/python -m pytest -m "$(CPU_MARKERS)" --cov --cov-report=term-missing
+
+schema:  ## Regenerate configs/schemas/trtship.schema.json
+	$(BIN)/python scripts/export_schema.py
 
 check: lint format-check typecheck test-cpu  ## Everything CI runs on CPU
 
