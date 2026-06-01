@@ -82,13 +82,28 @@ real execution (see Environment limitations).
   - Known limits (documented): passes are conservative and do little on clean exports; only
     top-level nodes are rewritten.
 
+- **Phases 16-19 (CPU part)** - Reproducibility, artifact management, orchestration, configuration
+  tooling. (2026-09-19)
+  - `artifacts/store.py` (immutable store, shared cache), `utils/seed.py`, `pipeline/`
+    (orchestrator, stages: inspect/export/validate/optimize), `reporting/run_report.py`,
+    commands `run`, `report`, `init`, `config schema`, `configs/schemas/trtship.schema.json`,
+    `examples/custom_model` + `configs/examples/custom_model.yaml`, `model.python_path`,
+    docs (quickstart, configuration, pipeline overview).
+  - Verified on CPU: 525 tests total including an end-to-end run of the example config through the
+    real CLI (run, report, resume, cache reuse, independent validation), ruff, mypy --strict.
+  - Still to do in these phases: engine stages plug into the same orchestrator as Phases 7-15 land
+    (build/calibrate/validate_engine/benchmark/package/serve); `benchmark compare`, `package`,
+    `serve`, `stop`, `status` CLI commands; benchmark sections in `trtship report` (Phase 11).
+
 ## Remaining tasks
 
-Phases 7-26 per `PROJECT_PLAN.md`.
+Phases 7-15 (TensorRT, calibration, engine validation, benchmarking, Triton), 11 (benchmark
+reports), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
+documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (418 after Phase 6)
+- Passing: see `make check` (525 after the orchestration work)
 - Failing: none
 - Skipped: none yet (no GPU-marked tests exist; the marker/skip machinery is in
   `tests/conftest.py` and skips with an explicit reason when no GPU/TensorRT is usable)

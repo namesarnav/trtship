@@ -30,7 +30,8 @@ GPU hardware.
 | TensorRT engine builder, INT8 calibration | planned |
 | Numerical validation, benchmarking, reports | planned |
 | Triton repository, server management, clients | planned |
-| Pipeline orchestration (`trtship run`), remaining CLI commands | planned |
+| Pipeline orchestration (`trtship run`, `report`, `init`), artifact store, run caching and resume | implemented, tested (CPU stages) |
+| Engine stages in `trtship run` (build, calibrate, benchmark, package, serve) | planned |
 
 Nothing labelled *planned* exists yet; commands for it are not registered. TensorRT- and
 Triton-dependent stages need an NVIDIA environment. They are implemented against the real APIs, and
@@ -61,7 +62,10 @@ make install-cpu
 trtship version
 trtship doctor                          # what can this machine run?
 trtship doctor --require tensorrt       # exit code 3 unless TensorRT is usable
+trtship init                            # write a starter config
 trtship config validate my-config.yaml  # validate a config; --set key=value to override
+trtship run configs/examples/custom_model.yaml   # inspect -> export -> validate -> optimize, on CPU
+trtship report                          # summarize the latest run
 trtship inspect my-config.yaml          # parameters, memory estimate, I/O signature, module tree
 trtship export my-config.yaml -o model.onnx   # ONNX export, verified against the model signature
 trtship validate onnx my-config.yaml model.onnx   # graph checks + PyTorch-vs-ONNX at min/opt/max shapes
@@ -122,6 +126,13 @@ runs/2026-09-19_ab12cd/
 | 3 | a required capability (GPU, TensorRT, Docker, ...) is unavailable |
 | 4-11 | model, export, validation, engine build, calibration, benchmark, Triton, artifact failures |
 | 70 | unexpected error (a bug); a traceback is printed |
+
+## Documentation
+
+- [Quickstart](docs/getting-started/quickstart.md), [configuration reference](docs/configuration.md)
+- Pipeline: [overview](docs/pipeline/overview.md), [models](docs/pipeline/models.md),
+  [inspection](docs/pipeline/inspection.md), [export](docs/pipeline/export.md),
+  [ONNX validation](docs/pipeline/onnx-validation.md), [optimization](docs/pipeline/optimization.md)
 
 ## Architecture
 

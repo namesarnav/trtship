@@ -40,6 +40,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   extraction, identity/dead-node elimination, initializer de-duplication and cleanup, shape
   inference) that write a new file with recorded hashes, sizes and before/after graph statistics,
   reject any pass that changes the model interface, and validate the result against PyTorch.
+- Pipeline orchestration (`trtship run`): stages ordered by the artifacts they produce and consume,
+  `--from/--only/--until/--dry-run`, capability preflight, scratch-then-publish so failures leave
+  nothing half-written, per-stage cache keys with within-run reuse and a content-verified shared
+  cache, failure recording and resume (`--run`), per-run structured logs.
+- Immutable artifact store with hash verification; `trtship report` (run summary with integrity
+  check); `trtship init` (starter config); `trtship config schema` and a checked-in JSON Schema.
+- `model.python_path` so a project's model code is importable without touching `PYTHONPATH`;
+  example model and config (`configs/examples/custom_model.yaml`).
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 

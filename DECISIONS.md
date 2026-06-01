@@ -187,3 +187,31 @@ TensorRT performs the heavy optimization. Every optimized file is interface-chec
 model signature before it is published, and the CLI validates it numerically by default.
 Trade-off: the passes do little on already-clean exports; that is accepted and documented rather
 than overstated.
+
+## D-022 - Orchestrator design (2026-09-19)
+
+- **Scratch, then publish.** Stages never write into the run's artifact directories directly. They
+  write to a scratch directory and `publish` moves files in without overwriting and registers them,
+  so a crash cannot leave a half-written artifact and a retry cannot collide with one. Conflicting
+  content is versioned (`name.2.ext`) rather than rejected, because a legitimate retry (for example
+  a report with a new timestamp) must be possible.
+- **Order from data, not lists.** `requires`/`uses`/`produces` artifact types define the graph, so
+  adding the engine stages needs no change to the orchestrator.
+- **Preflight over partial failure.** Every selected stage's required capabilities are checked before
+  any stage runs; a CPU-only machine gets one error listing everything, plus the `--until` that
+  would work, instead of doing four stages and then failing. Nothing falls back from GPU to CPU.
+- **Cache keys** hash input artifact hashes, the config slice, the weights hash, the seed, and tool
+  versions (plus GPU/driver for GPU stages). Measurement stages are `cacheable = False`.
+- **A tampered artifact is rebuilt, not trusted.** Every use re-hashes; a mismatch makes the
+  producing stage rerun and publish a new version, leaving the damaged file as evidence.
+- **Resuming requires an identical config** except for the `artifacts` section (output locations),
+  because results are only meaningful for the configuration that produced them.
+- Real runs of the example config exposed two bugs unit tests had missed (stage order in the
+  summary, and `changed` counting shape metadata as a change); both are fixed and tested.
+
+## D-023 - `model.python_path` (2026-09-19)
+
+Users' model code normally lives in their own repository. Rather than require `PYTHONPATH`, a config
+may list directories (relative to the config file) that are added to `sys.path` before the factory is
+imported. It is excluded from cache keys (machine-specific; the weights hash identifies content) and
+is covered by the existing trust statement: `kind: module` runs your code by design.
