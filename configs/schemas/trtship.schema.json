@@ -544,6 +544,11 @@
           "title": "Device Index",
           "type": "integer"
         },
+        "int8_fp16_fallback": {
+          "default": true,
+          "title": "Int8 Fp16 Fallback",
+          "type": "boolean"
+        },
         "optimization_level": {
           "default": 3,
           "maximum": 5,

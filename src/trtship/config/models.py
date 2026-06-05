@@ -194,6 +194,8 @@ class TensorRTConfig(_Base):
     profiles: list[OptimizationProfile] = Field(default_factory=list)
     timing_cache_path: OutputPath | None = None
     device_index: int = Field(default=0, ge=0)
+    # An INT8 build also enables FP16 so layers without an INT8 kernel need not fall back to FP32.
+    int8_fp16_fallback: bool = True
 
     @field_validator("precisions")
     @classmethod

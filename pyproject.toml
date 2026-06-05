@@ -33,8 +33,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# TensorRT + CUDA bindings. Requires an NVIDIA GPU environment; see docs/getting-started.
-trt = ["tensorrt>=10.0", "cuda-python>=12.0"]
+# TensorRT Python bindings. Requires an NVIDIA GPU environment and a CUDA build of torch (trtship
+# uses torch tensors for GPU buffers); see docs/pipeline/tensorrt.md.
+trt = ["tensorrt>=10.0"]
 # Triton HTTP/gRPC clients.
 triton = ["tritonclient[all]>=2.40"]
 # The torch.export-based ONNX exporter (`export.dynamo: true`).
