@@ -13,7 +13,7 @@ from trtship.artifacts import ArtifactStore, ArtifactType, RunDirectory, RunStat
 from trtship.config import TrtshipConfig
 from trtship.errors import ArtifactError, ValidationFailedError
 from trtship.onnx import validate_onnx as real_validate_onnx
-from trtship.pipeline import Pipeline
+from trtship.pipeline import Pipeline, Stage
 from trtship.pipeline.stages import default_stages
 from trtship.utils.env import EnvironmentReport
 
@@ -45,10 +45,15 @@ def baked_config(tmp_path: Path) -> TrtshipConfig:
     )
 
 
+def cpu_stages() -> list[Stage]:
+    """The default stages that need no GPU (the engine stages are exercised elsewhere)."""
+    return [s for s in default_stages() if not s.requires_capabilities]
+
+
 def pipeline(
     config: TrtshipConfig, make_run: MakeRun, environment: EnvironmentReport, run_id: str = "r1"
 ) -> Pipeline:
-    return Pipeline(config, make_run(run_id), default_stages(), environment)
+    return Pipeline(config, make_run(run_id), cpu_stages(), environment)
 
 
 @pytest.fixture

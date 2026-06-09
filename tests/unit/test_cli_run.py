@@ -50,7 +50,7 @@ def baked(tmp_path: Path) -> str:
 
 
 def test_run_executes_the_pipeline_and_writes_the_run_directory(cfg: str, tmp_path: Path) -> None:
-    result = runner.invoke(app, ["run", cfg, "--run-id", "r1"], env=WIDE)
+    result = runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "r1"], env=WIDE)
     assert result.exit_code == 0, result.output
     for expected in ("run r1", "inspect", "export", "validate", "optimize", "succeeded"):
         assert expected in result.output
@@ -67,7 +67,7 @@ def test_run_executes_the_pipeline_and_writes_the_run_directory(cfg: str, tmp_pa
 
 
 def test_run_json_output_is_pure_json(cfg: str) -> None:
-    result = runner.invoke(app, ["run", cfg, "--run-id", "j1", "--json"])
+    result = runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "j1", "--json"])
     assert result.exit_code == 0, result.output
     data = json.loads(result.stdout)
     assert data["status"] == "succeeded"
@@ -75,7 +75,9 @@ def test_run_json_output_is_pure_json(cfg: str) -> None:
 
 
 def test_dry_run_creates_nothing(cfg: str, tmp_path: Path) -> None:
-    result = runner.invoke(app, ["run", cfg, "--dry-run", "--until", "validate"], env=WIDE)
+    result = runner.invoke(
+        app, ["run", cfg, "--until", "optimize", "--dry-run", "--until", "validate"], env=WIDE
+    )
     assert result.exit_code == 0, result.output
     assert "validate" in result.output
     assert "optimize" not in result.output
@@ -84,13 +86,15 @@ def test_dry_run_creates_nothing(cfg: str, tmp_path: Path) -> None:
 
 def test_dry_run_shows_disabled_stages(cfg: str) -> None:
     result = runner.invoke(
-        app, ["run", cfg, "--dry-run", "--set", "optimize.enabled=false"], env=WIDE
+        app,
+        ["run", cfg, "--until", "optimize", "--dry-run", "--set", "optimize.enabled=false"],
+        env=WIDE,
     )
     assert "optimize.enabled is false" in result.output
 
 
 def test_partial_selection_needs_an_existing_run(cfg: str, tmp_path: Path) -> None:
-    result = runner.invoke(app, ["run", cfg, "--from", "validate"], env=WIDE)
+    result = runner.invoke(app, ["run", cfg, "--until", "optimize", "--from", "validate"], env=WIDE)
     assert result.exit_code == 2
     assert "needs artifacts from earlier stages" in result.output
     assert not (tmp_path / "runs").exists()
@@ -98,14 +102,16 @@ def test_partial_selection_needs_an_existing_run(cfg: str, tmp_path: Path) -> No
 
 
 def test_unknown_stage_is_a_usage_error(cfg: str) -> None:
-    result = runner.invoke(app, ["run", cfg, "--until", "nope"], env=WIDE)
+    result = runner.invoke(app, ["run", cfg, "--until", "optimize", "--until", "nope"], env=WIDE)
     assert result.exit_code == 2
     assert "unknown stage 'nope'" in result.output
 
 
 def test_resuming_a_run_skips_finished_stages(cfg: str, tmp_path: Path) -> None:
-    assert runner.invoke(app, ["run", cfg, "--run-id", "r1"]).exit_code == 0
-    again = runner.invoke(app, ["run", cfg, "--run", str(tmp_path / "runs" / "r1"), "--json"])
+    assert runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "r1"]).exit_code == 0
+    again = runner.invoke(
+        app, ["run", cfg, "--until", "optimize", "--run", str(tmp_path / "runs" / "r1"), "--json"]
+    )
     assert again.exit_code == 0, again.output
     data = json.loads(again.stdout)
     assert {s["status"] for s in data["stages"]} == {"skipped"}
@@ -113,10 +119,19 @@ def test_resuming_a_run_skips_finished_stages(cfg: str, tmp_path: Path) -> None:
 
 
 def test_resuming_with_a_different_config_is_refused(cfg: str, tmp_path: Path) -> None:
-    assert runner.invoke(app, ["run", cfg, "--run-id", "r1"]).exit_code == 0
+    assert runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "r1"]).exit_code == 0
     result = runner.invoke(
         app,
-        ["run", cfg, "--run", str(tmp_path / "runs" / "r1"), "--set", "export.opset=18"],
+        [
+            "run",
+            cfg,
+            "--until",
+            "optimize",
+            "--run",
+            str(tmp_path / "runs" / "r1"),
+            "--set",
+            "export.opset=18",
+        ],
         env=WIDE,
     )
     assert result.exit_code == 2
@@ -124,14 +139,18 @@ def test_resuming_with_a_different_config_is_refused(cfg: str, tmp_path: Path) -
 
 
 def test_only_the_artifacts_section_may_differ_on_resume(cfg: str, tmp_path: Path) -> None:
-    assert runner.invoke(app, ["run", cfg, "--run-id", "r1"]).exit_code == 0
+    assert runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "r1"]).exit_code == 0
     moved = ["--set", f"artifacts.cache_dir={tmp_path / 'other-cache'}"]
-    result = runner.invoke(app, ["run", cfg, "--run", str(tmp_path / "runs" / "r1"), *moved])
+    result = runner.invoke(
+        app, ["run", cfg, "--until", "optimize", "--run", str(tmp_path / "runs" / "r1"), *moved]
+    )
     assert result.exit_code == 0, result.output
 
 
 def test_a_failing_model_exits_6_and_says_how_to_resume(tmp_path: Path) -> None:
-    result = runner.invoke(app, ["run", baked(tmp_path), "--run-id", "bad"], env=WIDE)
+    result = runner.invoke(
+        app, ["run", baked(tmp_path), "--until", "optimize", "--run-id", "bad"], env=WIDE
+    )
     assert result.exit_code == 6
     assert "ONNX validation failed" in result.output
     assert "did not complete" in result.output
@@ -144,20 +163,20 @@ def test_a_failing_model_exits_6_and_says_how_to_resume(tmp_path: Path) -> None:
 
 
 def test_reusing_a_run_id_is_refused(cfg: str) -> None:
-    assert runner.invoke(app, ["run", cfg, "--run-id", "dup"]).exit_code == 0
-    result = runner.invoke(app, ["run", cfg, "--run-id", "dup"], env=WIDE)
+    assert runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "dup"]).exit_code == 0
+    result = runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "dup"], env=WIDE)
     assert result.exit_code == 11
     assert "already exists" in result.output
 
 
 def test_run_id_cannot_escape_the_run_root(cfg: str, tmp_path: Path) -> None:
-    result = runner.invoke(app, ["run", cfg, "--run-id", "../escape"])
+    result = runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "../escape"])
     assert result.exit_code == 2
     assert not (tmp_path / "escape").exists()
 
 
 def test_resuming_something_that_is_not_a_run(cfg: str, tmp_path: Path) -> None:
-    result = runner.invoke(app, ["run", cfg, "--run", str(tmp_path)])
+    result = runner.invoke(app, ["run", cfg, "--until", "optimize", "--run", str(tmp_path)])
     assert result.exit_code == 11
 
 
@@ -165,8 +184,8 @@ def test_resuming_something_that_is_not_a_run(cfg: str, tmp_path: Path) -> None:
 
 
 def test_report_summarizes_the_latest_run(cfg: str, tmp_path: Path) -> None:
-    runner.invoke(app, ["run", cfg, "--run-id", "first"])
-    runner.invoke(app, ["run", cfg, "--run-id", "second"])
+    runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "first"])
+    runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "second"])
     result = runner.invoke(
         app, ["report", "--root", str(tmp_path / "runs")], env={"COLUMNS": "200"}
     )
@@ -177,7 +196,7 @@ def test_report_summarizes_the_latest_run(cfg: str, tmp_path: Path) -> None:
 
 
 def test_report_json_and_execution_order(cfg: str, tmp_path: Path) -> None:
-    runner.invoke(app, ["run", cfg, "--run-id", "r1"])
+    runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "r1"])
     result = runner.invoke(app, ["report", str(tmp_path / "runs" / "r1"), "--json"])
     assert result.exit_code == 0, result.output
     data = json.loads(result.stdout)
@@ -190,7 +209,7 @@ def test_report_json_and_execution_order(cfg: str, tmp_path: Path) -> None:
 
 
 def test_report_flags_tampered_artifacts(cfg: str, tmp_path: Path) -> None:
-    runner.invoke(app, ["run", cfg, "--run-id", "r1"])
+    runner.invoke(app, ["run", cfg, "--until", "optimize", "--run-id", "r1"])
     (tmp_path / "runs" / "r1" / "artifacts" / "tiny.onnx").write_bytes(b"tampered")
     data = json.loads(
         runner.invoke(app, ["report", str(tmp_path / "runs" / "r1"), "--json"]).stdout

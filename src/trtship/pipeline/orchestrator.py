@@ -132,6 +132,35 @@ def plan_stages(
     return plan
 
 
+def preflight_stages(
+    selected: Sequence[Stage], config: TrtshipConfig, environment: EnvironmentReport
+) -> None:
+    """Fail before doing any work if a selected stage needs a capability this machine lacks."""
+    problems: list[str] = []
+    runnable: list[str] = []
+    for stage in selected:
+        if stage.skip_reason(config):
+            continue
+        missing = [
+            f"{name} is {cap.status.value}" + (f" ({cap.detail})" if cap.detail else "")
+            for name in stage.requires_capabilities
+            if not (cap := environment.capability(name)).ok
+        ]
+        if missing:
+            problems.append(f"stage {stage.name!r}: {'; '.join(missing)}")
+        elif not problems:
+            runnable.append(stage.name)
+    if problems:
+        hint = "Fix the environment (see `trtship doctor`)"
+        if runnable:
+            hint += f", or run only the stages this machine supports with --until {runnable[-1]}"
+        raise EnvironmentUnavailableError(
+            "cannot run the selected stages on this machine:\n  " + "\n  ".join(problems),
+            hint=hint + ".",
+            details={"problems": problems},
+        )
+
+
 class Pipeline:
     def __init__(
         self,
@@ -161,32 +190,7 @@ class Pipeline:
         return plan_stages(self.ordered, self.config, from_stage=from_stage, only=only, until=until)
 
     def _preflight(self, selected: Sequence[Stage]) -> None:
-        """Fail before doing any work if a selected stage needs a capability this machine lacks."""
-        problems: list[str] = []
-        runnable: list[str] = []
-        for stage in selected:
-            if stage.skip_reason(self.config):
-                continue
-            missing = [
-                f"{name} is {cap.status.value}" + (f" ({cap.detail})" if cap.detail else "")
-                for name in stage.requires_capabilities
-                if not (cap := self.environment.capability(name)).ok
-            ]
-            if missing:
-                problems.append(f"stage {stage.name!r}: {'; '.join(missing)}")
-            elif not problems:
-                runnable.append(stage.name)
-        if problems:
-            hint = "Fix the environment (see `trtship doctor`)"
-            if runnable:
-                hint += (
-                    f", or run only the stages this machine supports with --until {runnable[-1]}"
-                )
-            raise EnvironmentUnavailableError(
-                "cannot run the selected stages on this machine:\n  " + "\n  ".join(problems),
-                hint=hint + ".",
-                details={"problems": problems},
-            )
+        preflight_stages(selected, self.config, self.environment)
 
     # ------------------------------------------------------------------ execution
 

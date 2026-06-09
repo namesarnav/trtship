@@ -13,7 +13,14 @@ from trtship.cli.render import console, emit_json, err_console
 from trtship.config import TrtshipConfig, load_config
 from trtship.errors import ConfigError, TrtshipError
 from trtship.logging import attach_log_file, detach_log_file
-from trtship.pipeline import Pipeline, StageOutcome, order_stages, plan_stages
+from trtship.pipeline import (
+    Pipeline,
+    StageOutcome,
+    order_stages,
+    plan_stages,
+    preflight_stages,
+    select_stages,
+)
 from trtship.pipeline.stages import default_stages
 from trtship.reporting import render_run_summary, summarize_run
 from trtship.utils import env
@@ -89,6 +96,9 @@ def run_command(
         return
 
     environment = env.probe_all(repo_dir=config_path.resolve().parent)
+    # Check capabilities before creating a run directory, so an impossible request leaves no litter.
+    selected = select_stages(ordered, from_stage=from_stage, only=only, until=until)
+    preflight_stages(selected, config, environment)
     if run_dir is not None:
         run = RunDirectory.open(run_dir)
         _check_resumable(config, run)

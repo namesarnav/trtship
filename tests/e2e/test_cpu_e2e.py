@@ -8,9 +8,11 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from tests.helpers import fake_environment
 from trtship.artifacts import ArtifactStore, ArtifactType, RunDirectory
 from trtship.cli.main import app
 from trtship.reporting import summarize_run
+from trtship.utils import env
 
 pytestmark = pytest.mark.e2e
 
@@ -82,8 +84,19 @@ def test_a_second_run_is_served_from_the_cache_with_identical_artifacts(tmp_path
     assert b.verify_all() == []
 
 
-def test_the_engine_stages_are_not_available_yet(tmp_path: Path) -> None:
-    """Honest status: until the TensorRT phases land, `--from build` is an unknown stage."""
-    result = runner.invoke(app, ["run", EXAMPLE, "--dry-run", "--until", "build"])
-    assert result.exit_code == 2
-    assert "unknown stage 'build'" in result.output
+def test_a_full_run_without_a_gpu_fails_fast_and_creates_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(env, "probe_all", lambda repo_dir=None: fake_environment(gpu_ok=False))
+    result = runner.invoke(app, ["run", EXAMPLE, *overrides(tmp_path)], env={"COLUMNS": "200"})
+    assert result.exit_code == 3
+    assert "stage 'build'" in result.output
+    assert "nvidia_gpu is missing" in result.output
+    assert "--until optimize" in result.output  # how to run what this machine supports
+    assert not (tmp_path / "runs").exists()  # no run directory was created
+
+
+def test_the_plan_includes_the_engine_stage(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["run", EXAMPLE, "--dry-run"], env={"COLUMNS": "200"})
+    assert result.exit_code == 0, result.output
+    assert "build" in result.output
