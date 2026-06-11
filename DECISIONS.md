@@ -215,3 +215,26 @@ Users' model code normally lives in their own repository. Rather than require `P
 may list directories (relative to the config file) that are added to `sys.path` before the factory is
 imported. It is excluded from cache keys (machine-specific; the weights hash identifies content) and
 is covered by the existing trust statement: `kind: module` runs your code by design.
+
+## D-024 - TensorRT builder design and how it is (not) verified (2026-09-19)
+
+- **Fake TensorRT for translation logic only.** `tests/fakes/fake_tensorrt.py` records the builder
+  calls trtship makes so tests can assert workspace bytes, flags, profile shapes, network flags per
+  TensorRT version, timing-cache handling, and error reporting. It is documented as a fake; it says
+  nothing about whether real TensorRT accepts the calls. The real check is `tests/gpu`
+  (`@pytest.mark.tensorrt`), which cannot run on the dev machine (driver mismatch, and TensorRT is
+  not installed). Status files and docs therefore call the builder *unverified on hardware*.
+- **The `trt` module is a parameter** of `build_engine`, so the same code path runs against the fake
+  and the real module; there is no test-only branch in production code.
+- **GPU buffers use torch CUDA tensors** (settles D-015). It avoids a `cuda-python` dependency and
+  gives correct stream/pointer handling for free, at the cost of requiring a CUDA torch build for
+  execution (engine validation and benchmarks, later phases). Building only needs the driver.
+- **INT8 refusal is explicit** until the calibrate stage exists: the `build` stage raises an
+  `EngineBuildError` saying so, instead of building an uncalibrated INT8 engine.
+- **Preflight before run creation.** An impossible request (no GPU) exits 3 without leaving an empty
+  run directory. Tests that exercise only the CPU stages now say so (`--until optimize`).
+- **Engine cache keys** include the TensorRT version, GPU name/compute capability, and driver (via the
+  stage's required capabilities), so plans are never reused across incompatible environments.
+- **Open question, unverified:** whether current TensorRT releases support this machine's Pascal
+  GPU (sm_61). NVIDIA's support-matrix page is a JavaScript explorer whose static HTML holds no
+  hardware table, so this could not be settled from documentation here.

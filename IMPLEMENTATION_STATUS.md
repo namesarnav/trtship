@@ -4,17 +4,16 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 7 - TensorRT engine builder (not started).
+Phase 8 - INT8 calibration (not started).
 
 ## Current task
 
-Implement `tensorrt/`: engine building from an ONNX file (FP32/FP16/INT8 flags, workspace,
-optimization profiles for dynamic shapes, min/opt/max, input/output bindings, timing cache), engine
-inspection into an `EngineInfo` value object, TensorRT-version differences, and clear
-unsupported-operation reporting. Runs only where TensorRT and a supported GPU exist; everything else
-(config translation, profile construction from `TensorRTConfig`, `EngineInfo`, error reporting from
-parser messages) must be unit-testable with a fake `tensorrt` module. **BLOCKED BY ENVIRONMENT** for
-real execution (see Environment limitations).
+Implement `calibration/`: dataset abstraction (images / numpy / synthetic-with-opt-in), preprocessing,
+deterministic sampling and batching, calibration cache read/write with metadata (dataset identity,
+sample count, batch size, preprocessing, method, TensorRT/CUDA versions, model hash), the TensorRT
+calibrator (`IInt8EntropyCalibrator2` / MinMax) using torch CUDA buffers, and the `calibrate` stage.
+Data and cache handling are CPU-testable; the calibrator itself is **BLOCKED BY ENVIRONMENT** for real
+execution. The `build` stage then consumes the cache (it currently refuses `int8`).
 
 ## Completed phases
 
@@ -95,18 +94,28 @@ real execution (see Environment limitations).
     (build/calibrate/validate_engine/benchmark/package/serve); `benchmark compare`, `package`,
     `serve`, `stop`, `status` CLI commands; benchmark sections in `trtship report` (Phase 11).
 
+- **Phase 7** - TensorRT engine builder: **implemented, NOT verified on hardware** (2026-09-19).
+  - `tensorrt/` (`loader`, `profiles`, `engine_info`, `build`), `trtship build`, `build` pipeline
+    stage, `tests/fakes/fake_tensorrt.py`, `tests/gpu/test_tensorrt_gpu.py`,
+    `docs/pipeline/tensorrt.md`.
+  - Verified on CPU with the fake: 582 tests total (3 GPU tests skipped with reason), ruff,
+    mypy --strict. This proves trtship's translation logic and error reporting, **not** that real
+    TensorRT accepts what is sent. **BLOCKED BY ENVIRONMENT**: `tests/gpu` must pass on a machine with
+    a working NVIDIA driver, TensorRT, and a supported GPU before this phase is called verified.
+
 ## Remaining tasks
 
-Phases 7-15 (TensorRT, calibration, engine validation, benchmarking, Triton), 11 (benchmark
+Phases 8-15 (calibration, engine validation, benchmarking, Triton), 11 (benchmark
 reports), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (525 after the orchestration work)
+- Passing: see `make check` (582 passed, 3 skipped after Phase 7)
 - Failing: none
-- Skipped: none yet (no GPU-marked tests exist; the marker/skip machinery is in
-  `tests/conftest.py` and skips with an explicit reason when no GPU/TensorRT is usable)
+- Skipped: 3 (tests/gpu/test_tensorrt_gpu.py), each reporting
+  `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
+  passes: the TensorRT builder is unverified on hardware.
 - Coverage: 94% (`make test-cov`, measured after Phase 1); the uncovered lines are probe branches for states this machine
   cannot produce naturally and a few error paths.
 
@@ -133,7 +142,9 @@ APIs, and nothing is marked working until it has run on real hardware):
 - Even once the driver is fixed, this GPU is Pascal. Recent TensorRT releases have narrowed the
   supported architectures; whether a current TensorRT wheel supports sm_61 must be checked against
   its release notes before relying on this machine for GPU tests. Not yet verified.
-- CUDA toolkit `nvcc` 12.2 is present. TensorRT and tritonclient are not installed.
+- CUDA toolkit `nvcc` 12.2 is present. TensorRT and tritonclient are not installed. NVIDIA's
+  support-matrix page could not be read (JavaScript explorer), so whether current TensorRT
+  supports this Pascal GPU remains unverified.
 - Docker 29.2.1 is present; the NVIDIA container runtime is not configured (`docker info` lists
   only `runc`), so GPU containers and Triton-on-GPU cannot run here.
 - The system pyenv Python 3.12.9 lacks `_sqlite3` (breaks mypy's default cache and coverage.py).
@@ -150,5 +161,5 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 7: TensorRT engine builder (`tensorrt/`), built against the real TensorRT API and unit-tested
-with a fake module; real-hardware verification is blocked by environment.
+Phase 8: INT8 calibration (`calibration/`), then Phase 9 (engine executor and numerical validation).
+If a GPU machine becomes available first, run `pytest -m tensorrt -v` to verify Phase 7.

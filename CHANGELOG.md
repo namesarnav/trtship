@@ -48,6 +48,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   check); `trtship init` (starter config); `trtship config schema` and a checked-in JSON Schema.
 - `model.python_path` so a project's model code is importable without touching `PYTHONPATH`;
   example model and config (`configs/examples/custom_model.yaml`).
+- TensorRT engine building (`trtship build`, `build` pipeline stage): parser error and unsupported
+  operator reporting, FP32/FP16/INT8 flags (INT8 with optional FP16 fallback), optimization
+  profiles, workspace and optimization level, timing cache, engine description (`EngineInfo`) for
+  Triton configuration, TensorRT 8.6+ compatibility. **Not yet run against real TensorRT**; unit
+  tests use a labelled fake and GPU acceptance tests are in `tests/gpu`.
+- Capability preflight now runs before a run directory is created.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 

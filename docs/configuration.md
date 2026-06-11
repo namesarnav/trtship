@@ -63,6 +63,7 @@ models) for editor validation.
 | `profiles` | `[]` | optimization profiles: `- inputs: {name: {min: [...], opt: [...], max: [...]}}` |
 | `timing_cache_path` | | where to keep the builder timing cache |
 | `device_index` | `0` | GPU to build on |
+| `int8_fp16_fallback` | `true` | an INT8 build also enables FP16 for layers without an INT8 kernel |
 
 A dynamic input needs a profile entry. Profile ranks must match the declared input, static
 dimensions must not vary, and `min <= opt <= max` per axis. The **first** profile also chooses the
