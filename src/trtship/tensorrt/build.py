@@ -182,7 +182,9 @@ def _shapes_json(shapes: ProfileShapes) -> dict[str, dict[str, list[int]]]:
     }
 
 
-def _add_profiles(trt: Any, builder: Any, cfg: Any, profiles: list[ProfileShapes]) -> None:
+def _add_profiles(trt: Any, builder: Any, cfg: Any, profiles: list[ProfileShapes]) -> list[Any]:
+    """Add every profile to the config; returns the TensorRT profile objects in order."""
+    added: list[Any] = []
     for index, shapes in enumerate(profiles):
         profile = builder.create_optimization_profile()
         for name, (low, opt, high) in shapes.items():
@@ -197,6 +199,8 @@ def _add_profiles(trt: Any, builder: Any, cfg: Any, profiles: list[ProfileShapes
                 },
             )
         cfg.add_optimization_profile(profile)
+        added.append(profile)
+    return added
 
 
 def _precision_flags(
@@ -260,7 +264,9 @@ def _configure(
     )
     if calibrator is not None and precision is Precision.INT8:
         cfg.int8_calibrator = calibrator
-    _add_profiles(trt, builder, cfg, profiles)
+    added = _add_profiles(trt, builder, cfg, profiles)
+    if calibrator is not None and precision is Precision.INT8 and added:
+        cfg.set_calibration_profile(added[0])  # dynamic-shape INT8 calibrates at one profile
 
     configured = _Configured(cfg, flags, level)
     if settings.timing_cache_path is not None:

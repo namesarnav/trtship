@@ -25,6 +25,7 @@ dependencies = [
     "numpy>=1.26",
     "onnx>=1.16",
     "onnxruntime>=1.18",
+    "pillow>=10.0",
     "pydantic>=2.6",
     "pyyaml>=6.0",
     "rich>=13.7",

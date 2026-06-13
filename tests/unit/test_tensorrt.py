@@ -375,7 +375,8 @@ def test_int8_with_a_calibrator_enables_fp16_fallback_by_default(
     exported: tuple[Path, ModelSignature], tmp_path: Path
 ) -> None:
     class Calibrator:
-        pass
+        def read_calibration_cache(self) -> bytes:
+            return b"cached scales"
 
     calibrator = Calibrator()
     result, calls = build(exported, tmp_path, Precision.INT8, calibrator=calibrator)

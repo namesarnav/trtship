@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
 
+import numpy as np
+
 Triple = tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]
 
 
@@ -34,6 +36,16 @@ class ILogger:
 
     def log(self, severity: int, msg: str) -> None:  # pragma: no cover - overridden
         raise NotImplementedError
+
+
+class IInt8EntropyCalibrator2:
+    def __init__(self) -> None:
+        pass
+
+
+class IInt8MinMaxCalibrator:
+    def __init__(self) -> None:
+        pass
 
 
 class DataType(enum.Enum):
@@ -96,6 +108,9 @@ class FakeNetwork:
     def num_inputs(self) -> int:
         return len(self._inputs)
 
+    def input_names(self) -> list[str]:
+        return list(self._inputs)
+
     def get_input(self, index: int) -> Any:
         return SimpleNamespace(name=self._inputs[index])
 
@@ -144,6 +159,7 @@ class FakeBuilderConfig:
         self.profiles: list[FakeProfile] = []
         self.int8_calibrator: Any = None
         self.timing_cache: FakeTimingCache | None = None
+        self.calibration_profile: FakeProfile | None = None
         self.workspace_bytes: int | None = None
         if optimization_level:
             self.builder_optimization_level = 3
@@ -158,6 +174,10 @@ class FakeBuilderConfig:
     def add_optimization_profile(self, profile: FakeProfile) -> int:
         self.profiles.append(profile)
         return len(self.profiles) - 1
+
+    def set_calibration_profile(self, profile: FakeProfile) -> bool:
+        self.calibration_profile = profile
+        return True
 
     def create_timing_cache(self, blob: bytes) -> FakeTimingCache:
         return FakeTimingCache(blob)
@@ -176,6 +196,8 @@ class FakeCalls:
     network_flags: list[int] = field(default_factory=list)
     configs: list[FakeBuilderConfig] = field(default_factory=list)
     builds: int = 0
+    calibration_batches: list[list[int]] = field(default_factory=list)
+    used_cache: bool = False
 
 
 class FakeBuilder:
@@ -200,12 +222,27 @@ class FakeBuilder:
     def create_optimization_profile(self) -> FakeProfile:
         return FakeProfile(valid=not self._options.invalid_profile)
 
+    def _simulate_calibration(self, calibrator: Any, network: FakeNetwork) -> None:
+        """What TensorRT does with a calibrator: use its cache, or pull batches then write one."""
+        if calibrator.read_calibration_cache() is not None:
+            self._calls.used_cache = True
+            return
+        served = 0
+        while (pointers := calibrator.get_batch(network.input_names())) is not None:
+            self._calls.calibration_batches.append(list(pointers))
+            served += 1
+        if served and self._options.calibration_writes_cache:
+            calibrator.write_calibration_cache(b"FAKE-SCALES:" + str(served).encode())
+
     def build_serialized_network(
         self, network: FakeNetwork, cfg: FakeBuilderConfig
     ) -> bytes | None:
         self._calls.builds += 1
         self._logger.log(Severity.WARNING, "Tactic Device request: 512MB")
         self._logger.log(Severity.INFO, "chatter that must not be captured")
+        calibrator = cfg.int8_calibrator
+        if calibrator is not None and BuilderFlag.INT8 in cfg.flags:
+            self._simulate_calibration(calibrator, network)
         if self._options.build_fails:
             self._logger.log(Severity.ERROR, "Layer 'conv1' has no valid tactics")
             return None
@@ -313,6 +350,7 @@ class FakeOptions:
     fast_int8: bool = True
     has_optimization_level: bool = True
     tensor_api: bool = True
+    calibration_writes_cache: bool = True
 
 
 def make_fake_trt(options: FakeOptions | None = None) -> tuple[Any, FakeCalls]:
@@ -323,6 +361,8 @@ def make_fake_trt(options: FakeOptions | None = None) -> tuple[Any, FakeCalls]:
     module = SimpleNamespace(
         __version__=opts.version,
         ILogger=ILogger,
+        IInt8EntropyCalibrator2=IInt8EntropyCalibrator2,
+        IInt8MinMaxCalibrator=IInt8MinMaxCalibrator,
         DataType=DataType,
         TensorIOMode=TensorIOMode,
         BuilderFlag=BuilderFlag,
@@ -333,3 +373,16 @@ def make_fake_trt(options: FakeOptions | None = None) -> tuple[Any, FakeCalls]:
         Runtime=lambda logger: FakeRuntime(logger, calls, opts),
     )
     return module, calls
+
+
+class HostBuffers:
+    """A :class:`trtship.calibration.DeviceBuffers` that keeps 'device' memory on the host, so the
+    calibration data path can be tested without a GPU. It records every upload."""
+
+    def __init__(self) -> None:
+        self.uploads: list[Any] = []
+
+    def upload(self, array: Any) -> tuple[object, int]:
+        copy = np.ascontiguousarray(array).copy()
+        self.uploads.append(copy)
+        return copy, int(copy.ctypes.data)
