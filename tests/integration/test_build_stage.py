@@ -67,8 +67,17 @@ def test_the_engine_is_built_after_optimization_from_the_optimized_model(
     calls = fake_trt()
     run = pipeline(config_for(tmp_path), make_run)
     result = run.execute()
-    assert [o.name for o in result.stages] == ["inspect", "export", "validate", "optimize", "build"]
-    assert all(o.status is StageStatus.SUCCEEDED for o in result.stages)
+    assert [o.name for o in result.stages] == [
+        "inspect",
+        "export",
+        "validate",
+        "optimize",
+        "calibrate",
+        "build",
+    ]
+    statuses = {o.name: o.status for o in result.stages}
+    assert statuses.pop("calibrate") is StageStatus.SKIPPED  # no int8 configured
+    assert all(status is StageStatus.SUCCEEDED for status in statuses.values())
 
     store = ArtifactStore(run.run)
     engines = store.records(ArtifactType.ENGINE)
@@ -138,19 +147,6 @@ def test_the_engine_cache_key_depends_on_the_gpu_and_tensorrt_settings(
     assert statuses["build"] is StageStatus.SUCCEEDED  # the workspace changed, so rebuild
 
 
-def test_int8_is_refused_until_calibration_exists(
-    tmp_path: Path, make_run: MakeRun, fake_trt: Callable[..., FakeCalls]
-) -> None:
-    fake_trt()
-    data = config_for(tmp_path).model_dump(mode="json")
-    data["tensorrt"]["precisions"] = ["int8"]
-    data["calibration"] = {"dataset": "synthetic", "allow_synthetic": True}
-    run = pipeline(TrtshipConfig.model_validate(data), make_run)
-    with pytest.raises(EngineBuildError, match="calibrate stage is not implemented"):
-        run.execute()
-    assert run.run.read_manifest().stages["build"].status is StageStatus.FAILED
-
-
 def test_a_build_failure_is_recorded_with_the_builder_log(
     tmp_path: Path, make_run: MakeRun, fake_trt: Callable[..., FakeCalls]
 ) -> None:
@@ -196,6 +192,7 @@ def test_resuming_after_a_transient_build_failure_only_repeats_the_build(
         "export": StageStatus.SKIPPED,
         "validate": StageStatus.SKIPPED,
         "optimize": StageStatus.SKIPPED,
+        "calibrate": StageStatus.SKIPPED,
         "build": StageStatus.SUCCEEDED,
     }
 

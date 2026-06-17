@@ -8,6 +8,7 @@ import typer
 
 from trtship.cli.commands import (
     build_cmd,
+    calibrate_cmd,
     config_cmd,
     doctor,
     export_cmd,
@@ -68,6 +69,9 @@ app.command("run", help="Run the pipeline (inspect, export, validate, optimize, 
     handle_errors(run_cmd.run_command)
 )
 app.command("report", help="Summarize a run.")(handle_errors(report_cmd.report_command))
+app.command("calibrate", help="Run INT8 calibration and write a cache (needs a GPU).")(
+    handle_errors(calibrate_cmd.calibrate_command)
+)
 app.command("build", help="Build TensorRT engines from an ONNX model (needs a GPU).")(
     handle_errors(build_cmd.build_command)
 )
