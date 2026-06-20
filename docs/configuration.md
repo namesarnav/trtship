@@ -82,7 +82,7 @@ warns about a dynamic input with no profile.
 | `method` | `entropy2` | `entropy2` or `minmax` |
 | `preprocessing` | see below | `resize`, `center_crop`, `rescale` (1/255), `mean`/`std` (given together), `channel_order` |
 | `seed` | top-level seed | selects samples deterministically |
-| `cache_path` | | where to keep the calibration cache |
+| `cache_path` | | adopt an existing calibration cache directory instead of calibrating; it must verifiably match the current model, data, preprocessing, method, and TensorRT version, otherwise the run fails and lists the mismatches |
 | `allow_synthetic` | `false` | `synthetic` data is rejected unless this is `true`, because it gives unreliable INT8 scales |
 
 ## `validation`

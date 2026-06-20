@@ -238,3 +238,26 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **Open question, unverified:** whether current TensorRT releases support this machine's Pascal
   GPU (sm_61). NVIDIA's support-matrix page is a JavaScript explorer whose static HTML holds no
   hardware table, so this could not be settled from documentation here.
+
+## D-025 - Calibration design (2026-09-19)
+
+- **Calibrate by building.** TensorRT computes scales during an INT8 build, so the `calibrate`
+  stage runs that build with a data-feeding calibrator, keeps the cache, and discards the engine;
+  `build` rebuilds from the cache with a cache-only calibrator. The cost is one extra build; the
+  benefit is that final engines never depend on calibration-time state and the cache is a plain,
+  hashable artifact.
+- **Reuse requires proof.** `calibration.cache_path` is a way to adopt an existing cache, and only
+  after integrity and a field-by-field compatibility check (dataset fingerprint, sample count,
+  batch size, method, preprocessing, input, seed, model and ONNX hashes, TensorRT version).
+  Mismatches are an error that lists them; a stale cache is never used quietly. The earlier meaning
+  of the field ("where to keep the cache") is dropped: shared reuse is the artifact cache's job.
+- **Dataset identity is content.** Fingerprints hash file contents, not paths or mtimes, so moving a
+  dataset keeps its identity and editing one file changes it. The calibrate stage's cache key
+  includes the fingerprint.
+- **Synthetic data is opt-in and labelled.** Refused by the config unless `allow_synthetic`, marked
+  `representative: false` in metadata, and warned about in the stage result.
+- **Device copies are injectable** (`DeviceBuffers`): torch CUDA tensors in production, a host
+  stand-in in tests, so the calibrator protocol is tested without a GPU.
+- **Bugs found by the tests along the way:** `NumpyDataset.__len__` crashed for any array
+  (`array or []`), and the first draft of the build stage never passed the calibrator to
+  `build_engine` (a reformat had defeated an edit); both fixed.

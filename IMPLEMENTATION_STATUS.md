@@ -4,16 +4,16 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 8 - INT8 calibration (not started).
+Phase 9 - Numerical validation of engines (not started).
 
 ## Current task
 
-Implement `calibration/`: dataset abstraction (images / numpy / synthetic-with-opt-in), preprocessing,
-deterministic sampling and batching, calibration cache read/write with metadata (dataset identity,
-sample count, batch size, preprocessing, method, TensorRT/CUDA versions, model hash), the TensorRT
-calibrator (`IInt8EntropyCalibrator2` / MinMax) using torch CUDA buffers, and the `calibrate` stage.
-Data and cache handling are CPU-testable; the calibrator itself is **BLOCKED BY ENVIRONMENT** for real
-execution. The `build` stage then consumes the cache (it currently refuses `int8`).
+Implement `tensorrt/executor.py` (deserialize a plan, allocate torch CUDA buffers, set input shapes
+and tensor addresses, `execute_async_v3`, return numpy outputs) and the `validate_engine` stage:
+compare PyTorch vs ONNX vs TensorRT with the shared metrics and per-precision tolerances (absolute/
+relative error, cosine, distribution differences, top-1/top-k agreement) at the profile's min/opt/max
+shapes. The comparison and reporting logic is CPU-testable (with a fake executor); real execution is
+**BLOCKED BY ENVIRONMENT**.
 
 ## Completed phases
 
@@ -103,17 +103,26 @@ execution. The `build` stage then consumes the cache (it currently refuses `int8
     TensorRT accepts what is sent. **BLOCKED BY ENVIRONMENT**: `tests/gpu` must pass on a machine with
     a working NVIDIA driver, TensorRT, and a supported GPU before this phase is called verified.
 
+- **Phase 8** - INT8 calibration: data path **implemented and verified on CPU**; TensorRT
+  calibrator **implemented, NOT verified on hardware** (2026-09-19).
+  - `calibration/` (`dataset`, `preprocess`, `sampling`, `cache`, `calibrator`, `run`),
+    `trtship calibrate`, `calibrate` stage, INT8 consumption in the `build` stage,
+    `tests/gpu/test_calibration_gpu.py`, `docs/calibration/int8.md`.
+  - Verified: 631 tests passing, 3 skipped (GPU) at this point, ruff, mypy --strict. Datasets,
+    preprocessing math, deterministic sampling, cache integrity/compatibility, and the calibrator
+    protocol against the fake are all tested. **BLOCKED BY ENVIRONMENT:** real INT8 calibration.
+
 ## Remaining tasks
 
-Phases 8-15 (calibration, engine validation, benchmarking, Triton), 11 (benchmark
+Phases 9-15 (engine validation, benchmarking, Triton), 11 (benchmark
 reports), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (582 passed, 3 skipped after Phase 7)
+- Passing: see `make check` (631 passed, 3 skipped after Phase 8; 4 GPU tests skip once Phase 8's is added)
 - Failing: none
-- Skipped: 3 (tests/gpu/test_tensorrt_gpu.py), each reporting
+- Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
   passes: the TensorRT builder is unverified on hardware.
 - Coverage: 94% (`make test-cov`, measured after Phase 1); the uncovered lines are probe branches for states this machine
@@ -161,5 +170,5 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 8: INT8 calibration (`calibration/`), then Phase 9 (engine executor and numerical validation).
-If a GPU machine becomes available first, run `pytest -m tensorrt -v` to verify Phase 7.
+Phase 9: engine executor and numerical validation. If a GPU machine becomes available first, run
+`pytest -m tensorrt -v` to verify Phases 7 and 8.

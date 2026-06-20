@@ -53,6 +53,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   profiles, workspace and optimization level, timing cache, engine description (`EngineInfo`) for
   Triton configuration, TensorRT 8.6+ compatibility. **Not yet run against real TensorRT**; unit
   tests use a labelled fake and GPU acceptance tests are in `tests/gpu`.
+- INT8 calibration (`trtship calibrate`, `calibrate` stage): image/numpy/synthetic (opt-in)
+  datasets with content fingerprints, configurable preprocessing, deterministic seeded sampling and
+  batching, a calibration cache directory with full metadata, verified adoption of an existing cache
+  (every mismatch listed), and TensorRT calibrators (data-feeding and cache-serving) built against
+  the real API. The build stage consumes the cache for INT8. **TensorRT calibrator not yet run on
+  hardware.**
 - Capability preflight now runs before a run directory is created.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
