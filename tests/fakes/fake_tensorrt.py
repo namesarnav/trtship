@@ -262,6 +262,53 @@ class FakeBuilder:
         )
 
 
+class FakeExecutionContext:
+    """Executes by calling ``options.compute`` on the host arrays behind the bound addresses."""
+
+    def __init__(self, engine: Any, options: FakeOptions) -> None:
+        self._engine = engine
+        self._options = options
+        self.input_shapes: dict[str, tuple[int, ...]] = {}
+        self.addresses: dict[str, int] = {}
+        self.executions = 0
+
+    def set_input_shape(self, name: str, shape: tuple[int, ...]) -> bool:
+        low, _, high = self._engine.get_tensor_profile_shape(name, 0)
+        ok = all(lo <= d <= hi for lo, d, hi in zip(low, shape, high, strict=True))
+        if ok:
+            self.input_shapes[name] = tuple(shape)
+        return ok
+
+    def get_tensor_shape(self, name: str) -> tuple[int, ...]:
+        declared = self._engine.get_tensor_shape(name)
+        if -1 not in declared:
+            return tuple(declared)
+        if self._options.data_dependent_outputs:
+            return tuple(declared)
+        first = next(iter(self.input_shapes.values()), (1,))
+        return tuple(
+            first[0] if d == -1 and i == 0 else (d if d != -1 else 1)
+            for i, d in enumerate(declared)
+        )
+
+    def set_tensor_address(self, name: str, pointer: int) -> bool:
+        self.addresses[name] = pointer
+        return True
+
+    def execute_async_v3(self, stream: int) -> bool:
+        self.executions += 1
+        if self._options.execute_fails:
+            return False
+        memory = self._options.memory
+        inputs = {
+            t.name: memory.by_ptr[self.addresses[t.name]] for t in self._options.engine_inputs
+        }
+        results = self._options.compute(inputs)
+        for spec in self._options.engine_outputs:
+            memory.by_ptr[self.addresses[spec.name]][...] = results[spec.name]
+        return True
+
+
 class FakeEngine:
     """Engine using the TensorRT >= 8.5 tensor API."""
 
@@ -271,6 +318,7 @@ class FakeEngine:
         self.num_optimization_profiles = max(len(profiles), 1)
         self._tensors = [*options.engine_inputs, *options.engine_outputs]
         self._input_names = {t.name for t in options.engine_inputs}
+        self.contexts: list[FakeExecutionContext] = []
 
     @property
     def num_io_tensors(self) -> int:
@@ -290,6 +338,13 @@ class FakeEngine:
 
     def get_tensor_profile_shape(self, name: str, profile: int) -> Triple:
         return self._profiles[profile].shapes[name]
+
+    def create_execution_context(self) -> FakeExecutionContext | None:
+        if self._options.context_fails:
+            return None
+        context = FakeExecutionContext(self, self._options)
+        self.contexts.append(context)
+        return context
 
 
 class FakeBindingsEngine:
@@ -351,6 +406,11 @@ class FakeOptions:
     has_optimization_level: bool = True
     tensor_api: bool = True
     calibration_writes_cache: bool = True
+    memory: Any = None  # a HostMemory shared with the executor under test
+    compute: Any = None  # dict[str, ndarray] -> dict[str, ndarray], run by execute_async_v3
+    execute_fails: bool = False
+    context_fails: bool = False
+    data_dependent_outputs: bool = False
 
 
 def make_fake_trt(options: FakeOptions | None = None) -> tuple[Any, FakeCalls]:
@@ -386,3 +446,28 @@ class HostBuffers:
         copy = np.ascontiguousarray(array).copy()
         self.uploads.append(copy)
         return copy, int(copy.ctypes.data)
+
+
+class HostMemory:
+    """A :class:`trtship.tensorrt.DeviceMemory` whose 'device' buffers are host arrays, addressable
+    by their pointers so the fake execution context can read and write them."""
+
+    stream = 0
+
+    def __init__(self) -> None:
+        self.by_ptr: dict[int, Any] = {}
+
+    def allocate(self, shape: tuple[int, ...], dtype: Any) -> tuple[Any, int]:
+        array = np.zeros(shape, dtype=dtype)
+        pointer = int(array.ctypes.data)
+        self.by_ptr[pointer] = array
+        return array, pointer
+
+    def upload(self, handle: Any, array: Any) -> None:
+        handle[...] = array
+
+    def download(self, handle: Any) -> Any:
+        return handle.copy()
+
+    def synchronize(self) -> None:
+        return None

@@ -15,6 +15,12 @@ from trtship.tensorrt.engine_info import (
     convert_dtype,
     describe_engine,
 )
+from trtship.tensorrt.executor import (
+    BoundExecution,
+    DeviceMemory,
+    TensorRTExecutor,
+    TorchDeviceMemory,
+)
 from trtship.tensorrt.loader import (
     TrtVersion,
     check_supported,
@@ -24,11 +30,15 @@ from trtship.tensorrt.loader import (
 from trtship.tensorrt.profiles import build_profile_shapes
 
 __all__ = [
+    "BoundExecution",
     "BuildResult",
+    "DeviceMemory",
     "EngineInfo",
     "ProfileRange",
     "TensorBinding",
+    "TensorRTExecutor",
     "TimingCacheInfo",
+    "TorchDeviceMemory",
     "TrtVersion",
     "build_engine",
     "build_profile_shapes",

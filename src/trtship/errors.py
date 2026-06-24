@@ -75,6 +75,10 @@ class EngineBuildError(TrtshipError):
     exit_code = 7
 
 
+class EngineRuntimeError(EngineBuildError):
+    """A TensorRT engine could not be loaded or executed."""
+
+
 class CalibrationError(TrtshipError):
     """INT8 calibration failed or its data was invalid."""
 
