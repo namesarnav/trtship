@@ -18,7 +18,7 @@ guarantee of task accuracy: agreement with a reference on the sampled inputs is 
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -304,3 +304,11 @@ def compare_outputs(
                 )
             )
     return results
+
+
+def worst_comparison(comparisons: Sequence[TensorComparison]) -> TensorComparison:
+    """The most informative comparison of one output across samples: a failing one if any, otherwise
+    the one with the largest absolute error."""
+    failing = [c for c in comparisons if not c.passed]
+    pool = failing or list(comparisons)
+    return max(pool, key=lambda c: c.max_abs_error if c.max_abs_error is not None else float("inf"))

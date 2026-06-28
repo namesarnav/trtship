@@ -30,7 +30,7 @@ from trtship.onnx.graph import GraphReport, analyze_graph
 from trtship.onnx.runtime import OrtSession
 from trtship.utils.hashing import sha256_file
 from trtship.utils.timeutil import utc_now
-from trtship.validation import TensorComparison, compare_outputs
+from trtship.validation import TensorComparison, compare_outputs, worst_comparison
 
 log = get_logger(__name__)
 
@@ -115,12 +115,6 @@ def _to_numpy(tensors: Mapping[str, torch.Tensor]) -> dict[str, npt.NDArray[Any]
     return {name: t.detach().cpu().numpy() for name, t in tensors.items()}
 
 
-def _worst(comparisons: list[TensorComparison]) -> TensorComparison:
-    failing = [c for c in comparisons if not c.passed]
-    pool = failing or comparisons
-    return max(pool, key=lambda c: c.max_abs_error if c.max_abs_error is not None else float("inf"))
-
-
 def _run_point(
     label: str,
     sizes: dict[str, int],
@@ -152,7 +146,7 @@ def _run_point(
             error=exc.message,
             passed=False,
         )
-    outputs = [_worst(items) for items in per_output.values()]
+    outputs = [worst_comparison(items) for items in per_output.values()]
     return ShapePointResult(
         label=label,
         sizes=sizes,
