@@ -21,7 +21,7 @@ from trtship.artifacts import ArtifactStore, ArtifactType, RunDirectory, RunStat
 from trtship.cli.main import app
 from trtship.config import TrtshipConfig
 from trtship.errors import EngineBuildError
-from trtship.pipeline import Pipeline
+from trtship.pipeline import Pipeline, Stage
 from trtship.pipeline.stages import default_stages
 from trtship.tensorrt import build as trt_build
 from trtship.utils import env
@@ -57,8 +57,13 @@ def config_for(tmp_path: Path, **tensorrt: Any) -> TrtshipConfig:
     return TrtshipConfig.model_validate(data)
 
 
+def build_stages() -> list[Stage]:
+    """Every default stage except engine validation (which has its own tests)."""
+    return [s for s in default_stages() if s.name != "validate_engine"]
+
+
 def pipeline(config: TrtshipConfig, make_run: MakeRun, run_id: str = "r1") -> Pipeline:
-    return Pipeline(config, make_run(run_id), default_stages(), fake_environment(gpu_ok=True))
+    return Pipeline(config, make_run(run_id), build_stages(), fake_environment(gpu_ok=True))
 
 
 def test_the_engine_is_built_after_optimization_from_the_optimized_model(

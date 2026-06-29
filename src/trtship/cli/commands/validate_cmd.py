@@ -9,12 +9,16 @@ import typer
 
 from trtship.cli.guard import handle_errors
 from trtship.cli.render import console, emit_json
-from trtship.config import load_config
+from trtship.config import Precision, load_config
 from trtship.errors import ArtifactError
 from trtship.models import infer_signature, load_model
 from trtship.onnx import validate_onnx
+from trtship.reporting import render_engine_validation
 from trtship.reporting.validation_report import render_onnx_validation
+from trtship.tensorrt import TensorRTExecutor
+from trtship.utils import env
 from trtship.utils.fs import atomic_write_json
+from trtship.validation.engine import EngineUnderTest, validate_engines
 
 validate_app = typer.Typer(
     no_args_is_help=True, add_completion=False, pretty_exceptions_enable=False
@@ -53,4 +57,52 @@ def validate_onnx_command(
         render_onnx_validation(report, console)
         if output is not None:
             console.print(f"\nwrote {output}")
+    report.raise_for_failure()
+
+
+@validate_app.command("engine")
+@handle_errors
+def validate_engine_command(
+    config_path: Annotated[Path, typer.Argument(metavar="CONFIG", help="trtship YAML config.")],
+    engine_path: Annotated[Path, typer.Argument(metavar="ENGINE.plan", help="TensorRT plan.")],
+    onnx_path: Annotated[
+        Path, typer.Option("--onnx", help="The ONNX model the engine was built from.")
+    ],
+    precision: Annotated[
+        Precision, typer.Option("--precision", help="Precision the engine was built at.")
+    ],
+    overrides: Annotated[
+        list[str] | None, typer.Option("--set", help="Override a value: section.key=value.")
+    ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help="Print the report as JSON.")] = False,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Also write the JSON report here.")
+    ] = None,
+    force: Annotated[bool, typer.Option(help="Overwrite --output if it exists.")] = False,
+) -> None:
+    """Compare a TensorRT engine with PyTorch and ONNX Runtime. Exits 6 on failure. Needs a GPU."""
+    config = load_config(config_path, overrides=overrides or [])
+    if output is not None and output.exists() and not force:
+        raise ArtifactError(
+            f"refusing to overwrite existing file: {output}", hint="Pass --force to overwrite it."
+        )
+    env.require_tensorrt(purpose="validating a TensorRT engine")
+    env.require(env.TORCH_CUDA, purpose="validating a TensorRT engine")
+    model = load_model(config.model)
+    signature = infer_signature(model, config.model, config.tensorrt.profiles, seed=config.seed)
+    report = validate_engines(
+        [EngineUnderTest(precision=precision, path=str(engine_path))],
+        onnx_path,
+        model,
+        signature,
+        config,
+        TensorRTExecutor,
+    )
+    payload = report.model_dump(mode="json")
+    if output is not None:
+        atomic_write_json(output, payload)
+    if json_output:
+        emit_json(payload)
+    else:
+        render_engine_validation(report, console)
     report.raise_for_failure()

@@ -46,7 +46,7 @@ from trtship.errors import (
     EnvironmentUnavailableError,
 )
 from trtship.models import ModelSignature, load_model
-from trtship.pipeline import Pipeline
+from trtship.pipeline import Pipeline, Stage
 from trtship.pipeline.stages import default_stages
 from trtship.tensorrt import build as trt_build
 from trtship.utils import env
@@ -411,8 +411,13 @@ def fake_trt(monkeypatch: pytest.MonkeyPatch) -> Callable[[FakeOptions | None], 
     return install
 
 
+def build_stages() -> list[Stage]:
+    """Every default stage except engine validation (which has its own tests)."""
+    return [s for s in default_stages() if s.name != "validate_engine"]
+
+
 def pipeline(config: TrtshipConfig, make_run: MakeRun, run_id: str = "r1") -> Pipeline:
-    return Pipeline(config, make_run(run_id), default_stages(), fake_environment(gpu_ok=True))
+    return Pipeline(config, make_run(run_id), build_stages(), fake_environment(gpu_ok=True))
 
 
 def test_int8_flows_through_calibrate_then_build(
