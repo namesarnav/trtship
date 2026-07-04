@@ -261,3 +261,19 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **Bugs found by the tests along the way:** `NumpyDataset.__len__` crashed for any array
   (`array or []`), and the first draft of the build stage never passed the calibrator to
   `build_engine` (a reformat had defeated an edit); both fixed.
+
+## D-026 - Engine validation design (2026-09-19)
+
+- **Gate on PyTorch, report ONNX.** TensorRT is judged against PyTorch with the precision's
+  tolerance; the ONNX Runtime comparison is context, since ONNX-vs-PyTorch has its own gate. This
+  keeps one unambiguous pass/fail per engine.
+- **The executor is a protocol at the validation boundary** (`EngineExecutor`), so tolerance gating,
+  shape-point coverage, and reporting are tested with executors that reproduce, perturb, or break
+  PyTorch, independent of TensorRT. The TensorRT-specific binding logic is tested separately
+  against the fake context, and both are marked unverified on hardware until `tests/gpu` runs.
+- **Bound executions own their buffers** (a bug caught while writing this: the first draft kept
+  input buffers on the executor, so a second `bind()` would have freed the first one's). The
+  execution *context* still holds tensor addresses, so one bound execution per executor at a time.
+- **Layering:** `trtship.validation` (metrics) is below `trtship.onnx`, which is below
+  `trtship.validation.engine`; the engine validator is therefore not re-exported from the package
+  `__init__` (doing so created an import cycle).

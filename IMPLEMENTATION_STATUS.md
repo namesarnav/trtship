@@ -4,16 +4,16 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 9 - Numerical validation of engines (not started).
+Phase 10 - Benchmarking engine (not started).
 
 ## Current task
 
-Implement `tensorrt/executor.py` (deserialize a plan, allocate torch CUDA buffers, set input shapes
-and tensor addresses, `execute_async_v3`, return numpy outputs) and the `validate_engine` stage:
-compare PyTorch vs ONNX vs TensorRT with the shared metrics and per-precision tolerances (absolute/
-relative error, cosine, distribution differences, top-1/top-k agreement) at the profile's min/opt/max
-shapes. The comparison and reporting logic is CPU-testable (with a fake executor); real execution is
-**BLOCKED BY ENVIRONMENT**.
+Implement `benchmark/`: measurement (warmup, p50/p90/p95/p99, throughput, GPU/CPU memory, batch size,
+concurrency), phase separation (preprocessing / execution / postprocessing / end-to-end), the
+benchmark report schema, and backends: ONNX Runtime on the CPU (real and CPU-verifiable) and
+TensorRT via `TensorRTExecutor.bind()` with CUDA-event timing (GPU; **BLOCKED BY ENVIRONMENT**).
+Statistics, scheduling of measurements, and report generation are CPU-testable. Never fabricate
+numbers: every reported value must come from a measurement, labelled with its backend.
 
 ## Completed phases
 
@@ -108,19 +108,28 @@ shapes. The comparison and reporting logic is CPU-testable (with a fake executor
   - `calibration/` (`dataset`, `preprocess`, `sampling`, `cache`, `calibrator`, `run`),
     `trtship calibrate`, `calibrate` stage, INT8 consumption in the `build` stage,
     `tests/gpu/test_calibration_gpu.py`, `docs/calibration/int8.md`.
-  - Verified: 631 tests passing, 3 skipped (GPU) at this point, ruff, mypy --strict. Datasets,
+  - Verified: 631 tests passing, 4 skipped (GPU) at this point, ruff, mypy --strict. Datasets,
     preprocessing math, deterministic sampling, cache integrity/compatibility, and the calibrator
     protocol against the fake are all tested. **BLOCKED BY ENVIRONMENT:** real INT8 calibration.
 
+- **Phase 9** - Engine execution and numerical validation: logic **verified on CPU** with
+  stand-in executors; TensorRT executor **implemented, NOT verified on hardware** (2026-09-19).
+  - `tensorrt/executor.py` (`TensorRTExecutor`, `BoundExecution`, `TorchDeviceMemory`),
+    `validation/engine.py`, `validate_engine` stage, `trtship validate engine`,
+    `reporting/engine_report.py`, `tests/gpu/test_engine_validation_gpu.py`,
+    `docs/pipeline/engine-validation.md`.
+  - Verified: 657 tests passing, 6 skipped (GPU), ruff, mypy --strict. Bugs caught by tests along the
+    way are recorded in D-026. **BLOCKED BY ENVIRONMENT:** real TensorRT execution and accuracy.
+
 ## Remaining tasks
 
-Phases 9-15 (engine validation, benchmarking, Triton), 11 (benchmark
+Phases 10-15 (benchmarking, Triton), 11 (benchmark
 reports), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (631 passed, 3 skipped after Phase 8; 4 GPU tests skip once Phase 8's is added)
+- Passing: see `make check` (657 passed, 6 skipped after Phase 9)
 - Failing: none
 - Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
@@ -170,5 +179,5 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 9: engine executor and numerical validation. If a GPU machine becomes available first, run
-`pytest -m tensorrt -v` to verify Phases 7 and 8.
+Phase 10: benchmarking engine. If a GPU machine becomes available first, run
+`pytest -m tensorrt -v` to verify Phases 7-9.

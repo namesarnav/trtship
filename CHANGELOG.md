@@ -59,6 +59,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (every mismatch listed), and TensorRT calibrators (data-feeding and cache-serving) built against
   the real API. The build stage consumes the cache for INT8. **TensorRT calibrator not yet run on
   hardware.**
+- Engine execution and validation (`trtship validate engine`, `validate_engine` stage): a
+  `TensorRTExecutor` (real API; GPU memory via torch, injectable) and three-way comparison of
+  PyTorch, ONNX Runtime, and TensorRT at the profile's min/opt/max shapes, gated per precision by
+  the configured tolerance. Logic tested with stand-in executors and a fake TensorRT; **not yet run
+  on hardware**.
 - Capability preflight now runs before a run directory is created.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
