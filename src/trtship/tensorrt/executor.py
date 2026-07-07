@@ -23,6 +23,14 @@ from trtship.tensorrt.loader import load_tensorrt
 log = get_logger(__name__)
 
 
+class DeviceTimer(Protocol):
+    """Times a stretch of device work. ``stop_ms`` waits for the work to finish."""
+
+    def start(self) -> None: ...
+
+    def stop_ms(self) -> float: ...
+
+
 class DeviceMemory(Protocol):
     @property
     def stream(self) -> int:
@@ -36,6 +44,8 @@ class DeviceMemory(Protocol):
     def download(self, handle: Any) -> npt.NDArray[Any]: ...
 
     def synchronize(self) -> None: ...
+
+    def timer(self) -> DeviceTimer: ...
 
 
 class TorchDeviceMemory:
@@ -71,6 +81,25 @@ class TorchDeviceMemory:
     def synchronize(self) -> None:
         self._torch.cuda.synchronize(self._device)
 
+    def timer(self) -> DeviceTimer:
+        return _CudaEventTimer(self._torch)
+
+
+class _CudaEventTimer:
+    """GPU-side timing with CUDA events, which excludes host launch overhead and queueing."""
+
+    def __init__(self, torch: Any) -> None:
+        self._start = torch.cuda.Event(enable_timing=True)
+        self._stop = torch.cuda.Event(enable_timing=True)
+
+    def start(self) -> None:
+        self._start.record()
+
+    def stop_ms(self) -> float:
+        self._stop.record()
+        self._stop.synchronize()
+        return float(self._start.elapsed_time(self._stop))
+
 
 class BoundExecution:
     """Inputs uploaded and outputs allocated for one shape; execute repeatedly without copies."""
@@ -81,13 +110,22 @@ class BoundExecution:
         memory: DeviceMemory,
         outputs: dict[str, tuple[Any, TensorBinding]],
         name: str,
-        inputs: list[Any],
+        inputs: list[tuple[str, Any, np.dtype[Any]]],
     ) -> None:
         self._context = context
         self._memory = memory
         self._outputs = outputs
         self._name = name
-        self._inputs = inputs  # keeps the uploaded input buffers alive as long as this exists
+        self._inputs = inputs  # (name, buffer, dtype): keeps the buffers alive; used by refresh()
+
+    def refresh(self, inputs: Mapping[str, npt.NDArray[Any]]) -> None:
+        """Copy new input data (same shapes) into the bound buffers."""
+        for name, handle, dtype in self._inputs:
+            self._memory.upload(handle, np.asarray(inputs[name]).astype(dtype, copy=False))
+
+    @property
+    def memory(self) -> DeviceMemory:
+        return self._memory
 
     def execute(self) -> None:
         """Enqueue one inference on the stream (does not wait)."""
@@ -138,14 +176,14 @@ class TensorRTExecutor:
                     f"missing input {binding.name!r} for engine {self.name}",
                     details={"expected": [b.name for b in self.info.inputs]},
                 )
-        input_handles: list[Any] = []
+        input_handles: list[tuple[str, Any, np.dtype[Any]]] = []
         for binding in self.info.inputs:
             array = np.asarray(inputs[binding.name]).astype(to_numpy(binding.dtype), copy=False)
             self._set_input(binding, array)
             handle, pointer = self._memory.allocate(tuple(array.shape), array.dtype)
             self._memory.upload(handle, array)
             self._context.set_tensor_address(binding.name, pointer)
-            input_handles.append(handle)
+            input_handles.append((binding.name, handle, array.dtype))
 
         outputs: dict[str, tuple[Any, TensorBinding]] = {}
         for binding in self.info.outputs:

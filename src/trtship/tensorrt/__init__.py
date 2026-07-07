@@ -18,6 +18,7 @@ from trtship.tensorrt.engine_info import (
 from trtship.tensorrt.executor import (
     BoundExecution,
     DeviceMemory,
+    DeviceTimer,
     TensorRTExecutor,
     TorchDeviceMemory,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "BoundExecution",
     "BuildResult",
     "DeviceMemory",
+    "DeviceTimer",
     "EngineInfo",
     "ProfileRange",
     "TensorBinding",

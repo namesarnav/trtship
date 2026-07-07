@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import enum
 import json
+import time
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
@@ -471,3 +472,17 @@ class HostMemory:
 
     def synchronize(self) -> None:
         return None
+
+    def timer(self) -> Any:
+        return WallTimer()
+
+
+class WallTimer:
+    def __init__(self) -> None:
+        self._start = 0.0
+
+    def start(self) -> None:
+        self._start = time.perf_counter()
+
+    def stop_ms(self) -> float:
+        return (time.perf_counter() - self._start) * 1000.0

@@ -2,44 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 import pytest
 
+from tests.fakes.executors import make_engine_executor
 from tests.fakes.fake_tensorrt import (
     DataType,
-    FakeBuilderConfig,
     FakeOptions,
-    FakeProfile,
-    HostMemory,
     TensorSpec,
-    make_fake_trt,
 )
 from trtship.errors import EngineRuntimeError
-from trtship.tensorrt import TensorRTExecutor
 
-
-def double_first_four(inputs: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-    return {"output": inputs["x"][:, :4] * 2}
-
-
-def executor(
-    *,
-    options: FakeOptions | None = None,
-    profile: tuple[tuple[int, ...], ...] = ((1, 16), (4, 16), (8, 16)),
-) -> tuple[TensorRTExecutor, HostMemory, Any]:
-    memory = HostMemory()
-    opts = options or FakeOptions()
-    opts.memory = memory
-    opts.compute = opts.compute or double_first_four
-    trt, calls = make_fake_trt(opts)
-    cfg = FakeBuilderConfig(calls, optimization_level=True)
-    fake_profile = FakeProfile(valid=True)
-    fake_profile.set_shape("x", *profile)
-    cfg.add_optimization_profile(fake_profile)
-    calls.configs.append(cfg)
-    return TensorRTExecutor(b"plan", trt=trt, memory=memory, name="test.plan"), memory, calls
+executor = make_engine_executor
 
 
 def test_run_returns_the_engine_outputs() -> None:
