@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 
 from trtship.cli.commands import (
+    benchmark_cmd,
     build_cmd,
     calibrate_cmd,
     config_cmd,
@@ -79,6 +80,9 @@ app.command("optimize", help="Write an optimized copy of an ONNX model.")(
     handle_errors(optimize_cmd.optimize_command)
 )
 app.add_typer(config_cmd.config_app, name="config", help="Inspect and validate configuration.")
+app.add_typer(
+    benchmark_cmd.benchmark_app, name="benchmark", help="Benchmark models and compare runs."
+)
 app.add_typer(validate_cmd.validate_app, name="validate", help="Validate exported artifacts.")
 
 

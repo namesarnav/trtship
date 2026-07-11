@@ -1,6 +1,7 @@
 """Concrete pipeline stages and the default stage registry."""
 
 from trtship.pipeline.stage import Stage
+from trtship.pipeline.stages.benchmark_stage import BenchmarkStage
 from trtship.pipeline.stages.build_stage import BuildStage
 from trtship.pipeline.stages.calibrate_stage import CalibrateStage
 from trtship.pipeline.stages.export_stage import ExportStage
@@ -20,10 +21,12 @@ def default_stages() -> list[Stage]:
         CalibrateStage(),
         BuildStage(),
         ValidateEngineStage(),
+        BenchmarkStage(),
     ]
 
 
 __all__ = [
+    "BenchmarkStage",
     "BuildStage",
     "CalibrateStage",
     "ExportStage",

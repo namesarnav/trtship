@@ -9,6 +9,8 @@ from trtship import __version__
 from trtship.config import TrtshipConfig
 from trtship.export import export_onnx
 from trtship.models import LoadedModel, ModelSignature, infer_signature, load_model
+from trtship.pipeline import Stage
+from trtship.pipeline.stages import default_stages
 from trtship.utils import env
 from trtship.utils.env import Capability, CapabilityStatus, EnvironmentReport, GpuDevice
 from trtship.utils.timeutil import utc_now
@@ -96,3 +98,8 @@ def fake_environment(*, gpu_ok: bool, core_ok: bool = True) -> EnvironmentReport
         capabilities=caps,
         gpus=gpus,
     )
+
+
+def default_stages_without(*names: str) -> list[Stage]:
+    """The default stages minus the named ones (stages a test does not set up executors for)."""
+    return [stage for stage in default_stages() if stage.name not in names]

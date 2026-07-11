@@ -27,6 +27,7 @@ from tests.helpers import (
     TOKEN_INPUTS,
     TOKEN_PROFILE,
     build_config,
+    default_stages_without,
     export_to,
     fake_environment,
 )
@@ -47,7 +48,6 @@ from trtship.errors import (
 )
 from trtship.models import ModelSignature, load_model
 from trtship.pipeline import Pipeline, Stage
-from trtship.pipeline.stages import default_stages
 from trtship.tensorrt import build as trt_build
 from trtship.utils import env
 
@@ -412,8 +412,8 @@ def fake_trt(monkeypatch: pytest.MonkeyPatch) -> Callable[[FakeOptions | None], 
 
 
 def build_stages() -> list[Stage]:
-    """Every default stage except engine validation (which has its own tests)."""
-    return [s for s in default_stages() if s.name != "validate_engine"]
+    """Every default stage except the ones that need an engine executor (tested elsewhere)."""
+    return default_stages_without("validate_engine", "benchmark")
 
 
 def pipeline(config: TrtshipConfig, make_run: MakeRun, run_id: str = "r1") -> Pipeline:

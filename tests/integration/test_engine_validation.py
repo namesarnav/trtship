@@ -24,14 +24,20 @@ from tests.fakes.executors import (
     wrong_batch,
 )
 from tests.fakes.fake_tensorrt import FakeCalls, FakeOptions, make_fake_trt
-from tests.helpers import MLP_INPUT, MLP_PROFILE, build_config, export_to, fake_environment
+from tests.helpers import (
+    MLP_INPUT,
+    MLP_PROFILE,
+    build_config,
+    default_stages_without,
+    export_to,
+    fake_environment,
+)
 from trtship.artifacts import ArtifactStore, ArtifactType, RunDirectory, StageStatus
 from trtship.cli.main import app
 from trtship.config import Precision, TrtshipConfig
 from trtship.errors import EngineRuntimeError, ValidationFailedError
 from trtship.models import LoadedModel, ModelSignature, infer_signature, load_model
 from trtship.pipeline import Pipeline
-from trtship.pipeline.stages import default_stages
 from trtship.pipeline.stages.validate_engine_stage import latest_engine_per_precision
 from trtship.tensorrt import build as trt_build
 from trtship.utils import env
@@ -251,7 +257,10 @@ def test_the_stage_validates_every_built_engine(
 ) -> None:
     fake_trt(None)
     run = Pipeline(
-        pipeline_config(tmp_path), make_run(), default_stages(), fake_environment(gpu_ok=True)
+        pipeline_config(tmp_path),
+        make_run(),
+        default_stages_without("benchmark"),
+        fake_environment(gpu_ok=True),
     )
     result = run.execute()
     assert [o.name for o in result.stages][-2:] == ["build", "validate_engine"]
@@ -276,7 +285,10 @@ def test_an_inaccurate_engine_fails_the_stage_and_publishes_the_evidence(
 ) -> None:
     fake_trt(noisy(0.5))  # far too noisy for any precision
     run = Pipeline(
-        pipeline_config(tmp_path), make_run(), default_stages(), fake_environment(gpu_ok=True)
+        pipeline_config(tmp_path),
+        make_run(),
+        default_stages_without("benchmark"),
+        fake_environment(gpu_ok=True),
     )
     with pytest.raises(ValidationFailedError, match="engine validation failed"):
         run.execute()
@@ -297,7 +309,10 @@ def test_the_stage_cache_key_covers_every_precision(
 ) -> None:
     fake_trt(None)
     run = Pipeline(
-        pipeline_config(tmp_path), make_run(), default_stages(), fake_environment(gpu_ok=True)
+        pipeline_config(tmp_path),
+        make_run(),
+        default_stages_without("benchmark"),
+        fake_environment(gpu_ok=True),
     )
     run.execute()
     records = ArtifactStore(run.run).records(ArtifactType.ENGINE)

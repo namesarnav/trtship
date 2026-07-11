@@ -41,6 +41,11 @@
           "title": "Concurrency",
           "type": "array"
         },
+        "include_onnx_baseline": {
+          "default": true,
+          "title": "Include Onnx Baseline",
+          "type": "boolean"
+        },
         "iters": {
           "default": 500,
           "minimum": 1,

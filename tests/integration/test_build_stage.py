@@ -16,13 +16,19 @@ import yaml
 from typer.testing import CliRunner
 
 from tests.fakes.fake_tensorrt import FakeCalls, FakeOptions, ParserError, make_fake_trt
-from tests.helpers import MLP_INPUT, MLP_PROFILE, build_config, export_to, fake_environment
+from tests.helpers import (
+    MLP_INPUT,
+    MLP_PROFILE,
+    build_config,
+    default_stages_without,
+    export_to,
+    fake_environment,
+)
 from trtship.artifacts import ArtifactStore, ArtifactType, RunDirectory, RunStatus, StageStatus
 from trtship.cli.main import app
 from trtship.config import TrtshipConfig
 from trtship.errors import EngineBuildError
 from trtship.pipeline import Pipeline, Stage
-from trtship.pipeline.stages import default_stages
 from trtship.tensorrt import build as trt_build
 from trtship.utils import env
 
@@ -58,8 +64,8 @@ def config_for(tmp_path: Path, **tensorrt: Any) -> TrtshipConfig:
 
 
 def build_stages() -> list[Stage]:
-    """Every default stage except engine validation (which has its own tests)."""
-    return [s for s in default_stages() if s.name != "validate_engine"]
+    """Every default stage except the ones that need an engine executor (tested elsewhere)."""
+    return default_stages_without("validate_engine", "benchmark")
 
 
 def pipeline(config: TrtshipConfig, make_run: MakeRun, run_id: str = "r1") -> Pipeline:

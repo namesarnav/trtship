@@ -298,6 +298,8 @@ class BenchmarkConfig(_Base):
     concurrency: list[int] = Field(default_factory=lambda: [1], min_length=1)
     precisions: list[Precision] | None = None  # None benchmarks every built precision
     seed: int | None = None
+    # Also measure the ONNX model on ONNX Runtime's CPU provider, as a labelled baseline.
+    include_onnx_baseline: bool = True
 
     @field_validator("batch_sizes", "concurrency")
     @classmethod
