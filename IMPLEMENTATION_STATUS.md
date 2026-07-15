@@ -4,16 +4,16 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 10 - Benchmarking engine (not started).
+Phase 12 - Triton model repository (not started).
 
 ## Current task
 
-Implement `benchmark/`: measurement (warmup, p50/p90/p95/p99, throughput, GPU/CPU memory, batch size,
-concurrency), phase separation (preprocessing / execution / postprocessing / end-to-end), the
-benchmark report schema, and backends: ONNX Runtime on the CPU (real and CPU-verifiable) and
-TensorRT via `TensorRTExecutor.bind()` with CUDA-event timing (GPU; **BLOCKED BY ENVIRONMENT**).
-Statistics, scheduling of measurements, and report generation are CPU-testable. Never fabricate
-numbers: every reported value must come from a measurement, labelled with its backend.
+Implement `triton/repository.py`: generate a Triton model repository (`<name>/config.pbtxt`,
+`<name>/<version>/model.plan`) from the built engine's real `EngineInfo` (inputs, outputs, dtypes,
+shapes with -1 for dynamic dims, `max_batch_size` from the profile, instance groups, dynamic
+batching) and the `package` stage. Fully CPU-testable from `EngineInfo`; validate the generated
+`config.pbtxt` against the structure Triton expects. Then Phases 13-15 (server lifecycle via Docker,
+HTTP/gRPC clients, Triton benchmarking).
 
 ## Completed phases
 
@@ -121,15 +121,24 @@ numbers: every reported value must come from a measurement, labelled with its ba
   - Verified: 657 tests passing, 6 skipped (GPU), ruff, mypy --strict. Bugs caught by tests along the
     way are recorded in D-026. **BLOCKED BY ENVIRONMENT:** real TensorRT execution and accuracy.
 
+- **Phases 10-11** - Benchmarking and benchmark reports: ONNX Runtime CPU backend **real and
+  verified on CPU**; TensorRT backend **implemented, NOT verified on hardware** (2026-09-19).
+  - `benchmark/` (`stats`, `schema`, `runner`, `targets`, `run`), `reporting/benchmark_report.py`
+    (rendering, Markdown, comparison), `benchmark` stage, `trtship benchmark onnx|engine|compare`,
+    `docs/benchmarking/methodology.md`.
+  - Verified: 694 tests passing, 6 skipped (GPU), ruff, mypy --strict. Statistics and scheduling are
+    asserted exactly with injected clocks; the ONNX Runtime backend was run for real (e.g. the example
+    CNN at ~45 us per batch-1 request on this CPU) with structural assertions only.
+  - **BLOCKED BY ENVIRONMENT:** TensorRT (GPU) timing and memory. No GPU numbers exist.
+
 ## Remaining tasks
 
-Phases 10-15 (benchmarking, Triton), 11 (benchmark
-reports), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
+Phases 12-15 (Triton), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (657 passed, 6 skipped after Phase 9)
+- Passing: see `make check` (694 passed, 6 skipped after Phase 11)
 - Failing: none
 - Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
@@ -179,5 +188,5 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 10: benchmarking engine. If a GPU machine becomes available first, run
-`pytest -m tensorrt -v` to verify Phases 7-9.
+Phase 12: Triton model repository generation from `EngineInfo`. If a GPU machine becomes available
+first, run `pytest -m tensorrt -v` to verify Phases 7-10.

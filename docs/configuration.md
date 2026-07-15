@@ -101,9 +101,10 @@ guarantees. See [ONNX validation](pipeline/onnx-validation.md).
 ## `benchmark`, `triton`, `artifacts`
 
 `benchmark` (`warmup_iters` 50, `iters` 500, `batch_sizes` `[1]`, `concurrency` `[1]`,
-`precisions`, `seed`) and `triton` (`repository_dir`, `model_version`, `precision`,
+`precisions`, `seed`, `include_onnx_baseline` true; used by the [benchmark](benchmarking/methodology.md)
+stage) and, for the stages that are not implemented yet, `triton` (`repository_dir`, `model_version`, `precision`,
 `max_batch_size`, `instance_count`, `instance_gpus`, `dynamic_batching`, `image`, `container_name`,
-ports, `startup_timeout_s`) are validated now and used by the stages that are not implemented yet.
+ports, `startup_timeout_s`) is validated now and used by the Triton stages, which are not implemented yet.
 There is deliberately no default Triton `image`: a TensorRT plan loads only in the TensorRT version
 that built it, so choose the Triton release that ships yours.
 

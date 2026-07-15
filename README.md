@@ -30,10 +30,10 @@ GPU hardware.
 | TensorRT engine builder (`trtship build`, `build` stage) | implemented against the real API; unit-tested with a fake; **not yet verified on hardware** |
 | INT8 calibration (`trtship calibrate`, `calibrate` stage) | data path and cache implemented and tested on CPU; TensorRT calibrator **not yet verified on hardware** |
 | Engine executor and numerical validation (`validate engine`, `validate_engine` stage) | implemented; logic tested with stand-in executors and a fake TensorRT; **not yet verified on hardware** |
-| Benchmarking, benchmark reports | planned |
+| Benchmarking (`trtship benchmark onnx/engine/compare`, `benchmark` stage), benchmark reports | ONNX Runtime CPU backend real and runnable; TensorRT backend implemented, tested with a fake, **not yet verified on hardware** |
 | Triton repository, server management, clients | planned |
 | Pipeline orchestration (`trtship run`, `report`, `init`), artifact store, run caching and resume | implemented, tested (CPU stages) |
-| Remaining engine stages in `trtship run` (benchmark, package, serve) | planned |
+| Remaining stages in `trtship run` (package, serve) | planned |
 
 Nothing labelled *planned* exists yet; commands for it are not registered. TensorRT- and
 Triton-dependent stages need an NVIDIA environment. They are implemented against the real APIs, and
@@ -137,7 +137,8 @@ runs/2026-09-19_ab12cd/
   [inspection](docs/pipeline/inspection.md), [export](docs/pipeline/export.md),
   [ONNX validation](docs/pipeline/onnx-validation.md), [optimization](docs/pipeline/optimization.md),
   [TensorRT](docs/pipeline/tensorrt.md), [INT8 calibration](docs/calibration/int8.md),
-  [engine validation](docs/pipeline/engine-validation.md)
+  [engine validation](docs/pipeline/engine-validation.md),
+  [benchmarking](docs/benchmarking/methodology.md)
 
 ## Architecture
 

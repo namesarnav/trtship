@@ -277,3 +277,22 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **Layering:** `trtship.validation` (metrics) is below `trtship.onnx`, which is below
   `trtship.validation.engine`; the engine validator is therefore not re-exported from the package
   `__init__` (doing so created an import cycle).
+
+## D-027 - Benchmark design (2026-09-19)
+
+- **Only measurements, always labelled.** Every measurement carries its backend and device; GPU
+  memory is `null` unless measured; unsupported combinations are listed as `skipped` with the reason
+  (directly executed TensorRT cannot run concurrent requests) instead of being dropped or emulated.
+  The repository contains no TensorRT or Triton benchmark numbers because none were measured.
+- **Targets own the work, the runner owns scheduling and statistics.** `BenchmarkTarget` is a small
+  protocol (ONNX Runtime, TensorRT direct, later Triton), so the loop, percentile maths, warmup and
+  cold-call handling, concurrency accounting, and noise notes are tested once with injected clocks
+  and exact expected values.
+- **The cold call is recorded separately** (`first_call_ms`) and excluded from the statistics, in
+  addition to `warmup_iters` discarded iterations.
+- **Errors keep their category.** A structured trtship error raised during measurement (for example
+  an engine runtime error) propagates with its own exit code and hint; anything else becomes a
+  `BenchmarkError`. (Found by a test: the cold call previously escaped unwrapped.)
+- **Never cached.** The benchmark stage is `cacheable = False`: it measures this machine now.
+- **Comparison never overstates.** `compare` matches measurements on backend/precision/batch/
+  concurrency, warns on different GPUs, tool versions, or weights, and lists unmatched measurements.

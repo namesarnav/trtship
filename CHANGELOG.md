@@ -64,6 +64,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   PyTorch, ONNX Runtime, and TensorRT at the profile's min/opt/max shapes, gated per precision by
   the configured tolerance. Logic tested with stand-in executors and a fake TensorRT; **not yet run
   on hardware**.
+- Benchmarking (`trtship benchmark onnx|engine|compare`, `benchmark` stage): warmup and cold-call
+  separation, p50/p90/p95/p99, throughput, CPU/GPU memory where measurable, batch size and
+  concurrency matrices, preprocess/execute/postprocess/end-to-end phases (CUDA-event GPU timing for
+  TensorRT), an ONNX Runtime CPU baseline, versioned JSON reports with embedded methodology,
+  Markdown rendering, and run-to-run comparison that flags different machines, tool versions, or
+  weights. The ONNX Runtime backend is real; the TensorRT backend is **not yet run on hardware**.
 - Capability preflight now runs before a run directory is created.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
