@@ -2910,6 +2910,8 @@ dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "tritonclient", version = "2.71.0", source = { registry = "https://pypi.org/simple" }, extra = ["all"], marker = "python_full_version < '3.12'" },
+    { name = "tritonclient", version = "2.72.0", source = { registry = "https://pypi.org/simple" }, extra = ["all"], marker = "python_full_version >= '3.12'" },
     { name = "types-pyyaml" },
 ]
 
@@ -2937,6 +2939,7 @@ dev = [
     { name = "pytest", specifier = ">=8.2" },
     { name = "pytest-cov", specifier = ">=5.0" },
     { name = "ruff", specifier = ">=0.5" },
+    { name = "tritonclient", extras = ["all"], specifier = ">=2.40" },
     { name = "types-pyyaml", specifier = ">=6.0" },
 ]
 
