@@ -65,7 +65,7 @@ def config_for(tmp_path: Path, **tensorrt: Any) -> TrtshipConfig:
 
 def build_stages() -> list[Stage]:
     """Every default stage except the ones that need an engine executor (tested elsewhere)."""
-    return default_stages_without("validate_engine", "benchmark")
+    return default_stages_without("validate_engine", "benchmark", "package")
 
 
 def pipeline(config: TrtshipConfig, make_run: MakeRun, run_id: str = "r1") -> Pipeline:

@@ -16,6 +16,7 @@ from trtship.cli.commands import (
     init_cmd,
     inspect_cmd,
     optimize_cmd,
+    package_cmd,
     report_cmd,
     run_cmd,
     validate_cmd,
@@ -75,6 +76,9 @@ app.command("calibrate", help="Run INT8 calibration and write a cache (needs a G
 )
 app.command("build", help="Build TensorRT engines from an ONNX model (needs a GPU).")(
     handle_errors(build_cmd.build_command)
+)
+app.command("package", help="Create a Triton model repository from an engine.")(
+    handle_errors(package_cmd.package_command)
 )
 app.command("optimize", help="Write an optimized copy of an ONNX model.")(
     handle_errors(optimize_cmd.optimize_command)

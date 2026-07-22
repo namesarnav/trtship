@@ -366,7 +366,10 @@ def fake_trt(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def stage_pipeline(config: TrtshipConfig, make_run: MakeRun) -> Pipeline:
     return Pipeline(
-        config, make_run(), default_stages_without("validate_engine"), fake_environment(gpu_ok=True)
+        config,
+        make_run(),
+        default_stages_without("validate_engine", "package"),
+        fake_environment(gpu_ok=True),
     )
 
 
@@ -402,7 +405,7 @@ def test_benchmarks_are_never_cached_or_skipped(
     other = Pipeline(
         bench_config(tmp_path, batch_sizes=[1]),
         make_run("second"),
-        default_stages_without("validate_engine"),
+        default_stages_without("validate_engine", "package"),
         fake_environment(gpu_ok=True),
     )
     fresh = other.execute()

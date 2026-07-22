@@ -7,6 +7,7 @@ from trtship.pipeline.stages.calibrate_stage import CalibrateStage
 from trtship.pipeline.stages.export_stage import ExportStage
 from trtship.pipeline.stages.inspect_stage import InspectStage
 from trtship.pipeline.stages.optimize_stage import OptimizeStage
+from trtship.pipeline.stages.package_stage import PackageStage
 from trtship.pipeline.stages.validate_engine_stage import ValidateEngineStage
 from trtship.pipeline.stages.validate_stage import ValidateStage
 
@@ -22,6 +23,7 @@ def default_stages() -> list[Stage]:
         BuildStage(),
         ValidateEngineStage(),
         BenchmarkStage(),
+        PackageStage(),
     ]
 
 
@@ -32,6 +34,7 @@ __all__ = [
     "ExportStage",
     "InspectStage",
     "OptimizeStage",
+    "PackageStage",
     "ValidateEngineStage",
     "ValidateStage",
     "default_stages",

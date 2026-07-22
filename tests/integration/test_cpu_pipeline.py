@@ -47,7 +47,7 @@ def baked_config(tmp_path: Path) -> TrtshipConfig:
 
 def cpu_stages() -> list[Stage]:
     """The default stages that need no GPU (the engine stages are exercised elsewhere)."""
-    return [s for s in default_stages() if not s.requires_capabilities]
+    return [s for s in default_stages() if not s.requires_capabilities and s.name != "package"]
 
 
 def pipeline(

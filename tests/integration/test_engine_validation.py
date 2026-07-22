@@ -259,7 +259,7 @@ def test_the_stage_validates_every_built_engine(
     run = Pipeline(
         pipeline_config(tmp_path),
         make_run(),
-        default_stages_without("benchmark"),
+        default_stages_without("benchmark", "package"),
         fake_environment(gpu_ok=True),
     )
     result = run.execute()
@@ -287,7 +287,7 @@ def test_an_inaccurate_engine_fails_the_stage_and_publishes_the_evidence(
     run = Pipeline(
         pipeline_config(tmp_path),
         make_run(),
-        default_stages_without("benchmark"),
+        default_stages_without("benchmark", "package"),
         fake_environment(gpu_ok=True),
     )
     with pytest.raises(ValidationFailedError, match="engine validation failed"):
@@ -311,7 +311,7 @@ def test_the_stage_cache_key_covers_every_precision(
     run = Pipeline(
         pipeline_config(tmp_path),
         make_run(),
-        default_stages_without("benchmark"),
+        default_stages_without("benchmark", "package"),
         fake_environment(gpu_ok=True),
     )
     run.execute()

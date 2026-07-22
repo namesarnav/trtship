@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -38,7 +39,12 @@ def build_command(
     results = []
     for chosen in precision or config.tensorrt.precisions:
         target = output_dir / f"{model.name}.{chosen.value}.plan"
-        results.append(build_engine(onnx_path, signature, config, chosen, target))
+        result = build_engine(onnx_path, signature, config, chosen, target)
+        # The engine's tensors, for `trtship package`, which needs no GPU to read them.
+        target.with_name(target.name + ".json").write_text(
+            json.dumps(result.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
+        )
+        results.append(result)
     if json_output:
         emit_json([r.model_dump(mode="json") for r in results])
         return
