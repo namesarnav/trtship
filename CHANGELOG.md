@@ -70,9 +70,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   TensorRT), an ONNX Runtime CPU baseline, versioned JSON reports with embedded methodology,
   Markdown rendering, and run-to-run comparison that flags different machines, tool versions, or
   weights. The ONNX Runtime backend is real; the TensorRT backend is **not yet run on hardware**.
+- Triton model repository (`trtship package`, `package` stage): `config.pbtxt` generated from the
+  engine's real tensors and profile (batching, dtypes, instance groups, dynamic batching), the
+  `<model>/<version>/model.plan` layout, refusal to package an engine that failed validation, and
+  an engine description file written by `trtship build`. Tests parse the output with Triton's
+  protobuf schema; **no Triton server has loaded it**.
 - Capability preflight now runs before a run directory is created.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 
 #### Notes
-- No TensorRT, calibration, benchmark, or Triton functionality exists yet.
+- Triton server management and clients do not exist yet.

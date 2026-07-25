@@ -296,3 +296,28 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **Never cached.** The benchmark stage is `cacheable = False`: it measures this machine now.
 - **Comparison never overstates.** `compare` matches measurements on backend/precision/batch/
   concurrency, warns on different GPUs, tool versions, or weights, and lists unmatched measurements.
+
+## D-028 - Triton model repository design (2026-09-19)
+
+- **The config comes from the engine, not the user.** `config.pbtxt` is rendered from the engine's
+  own tensor list and optimization profile (`EngineInfo`), so names, dtypes and batch limits cannot
+  drift from the plan. `triton.max_batch_size` can only lower the engine's limit; asking for more
+  is a configuration error naming both numbers.
+- **Packaging needs no GPU.** `EngineInfo` is stored in the engine artifact's metadata by the build
+  and next to the plan by `trtship build` (`MODEL.plan.json`), so the `package` stage and command
+  run anywhere. The alternative, deserializing the plan at package time, would have made a text
+  file depend on TensorRT and a GPU.
+- **Triton's batch convention is enforced, not guessed.** With batching on, every tensor needs a
+  dynamic leading axis (it is dropped from `dims`); otherwise packaging fails and points to
+  `max_batch_size: 0`. Silent guesses would produce a repository Triton rejects at load time, on a
+  machine trtship may not have.
+- **Validation gates packaging.** A failed engine validation report blocks the stage (exit code of
+  the validation failure); a missing or partial report only warns, because `package` must remain
+  usable for engines built and checked elsewhere.
+- **Repositories are immutable, like every artifact.** They are assembled beside the destination and
+  moved into place, never overwrite an existing directory, and leave nothing behind on failure.
+  The stage publishes the repository into the run as an artifact (never cached: it is a copy of the
+  plan plus a text file); `trtship package -o DIR` writes a standalone copy.
+- **Verified against Triton's schema, not a server.** Tests parse the output with
+  `tritonclient`'s `model_config_pb2`, which validates syntax and field values. No Triton server
+  has loaded the result. `tritonclient` is a dev dependency for this reason.
