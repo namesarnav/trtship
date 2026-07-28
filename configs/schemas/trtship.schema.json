@@ -722,6 +722,11 @@
     "TritonConfig": {
       "additionalProperties": false,
       "properties": {
+        "bind_address": {
+          "default": "127.0.0.1",
+          "title": "Bind Address",
+          "type": "string"
+        },
         "container_name": {
           "default": "trtship-triton",
           "title": "Container Name",

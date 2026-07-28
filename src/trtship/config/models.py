@@ -7,6 +7,7 @@ working directory. Both are made absolute during validation so a config snapshot
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from enum import StrEnum
 from pathlib import Path
@@ -326,10 +327,28 @@ class TritonConfig(_Base):
     # deliberately no default image: pick the Triton release that ships your TensorRT version.
     image: str | None = None
     container_name: str = "trtship-triton"
+    # Published ports are bound to this address; the default keeps the server local to the host.
+    bind_address: str = "127.0.0.1"
     http_port: int = Field(default=8000, ge=1, le=65535)
     grpc_port: int = Field(default=8001, ge=1, le=65535)
     metrics_port: int = Field(default=8002, ge=1, le=65535)
     startup_timeout_s: float = Field(default=180.0, gt=0)
+
+    @field_validator("bind_address")
+    @classmethod
+    def _valid_address(cls, value: str) -> str:
+        try:
+            ipaddress.ip_address(value)
+        except ValueError as exc:
+            raise ValueError("must be an IPv4 or IPv6 address") from exc
+        return value
+
+    @field_validator("container_name")
+    @classmethod
+    def _valid_container_name(cls, value: str) -> str:
+        if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", value):
+            raise ValueError("must be a valid Docker container name")
+        return value
 
     @model_validator(mode="after")
     def _distinct_ports(self) -> TritonConfig:

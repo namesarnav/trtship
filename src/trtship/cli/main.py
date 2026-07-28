@@ -19,6 +19,7 @@ from trtship.cli.commands import (
     package_cmd,
     report_cmd,
     run_cmd,
+    server_cmd,
     validate_cmd,
     version,
 )
@@ -79,6 +80,15 @@ app.command("build", help="Build TensorRT engines from an ONNX model (needs a GP
 )
 app.command("package", help="Create a Triton model repository from an engine.")(
     handle_errors(package_cmd.package_command)
+)
+app.command("serve", help="Start Triton in Docker on a model repository (needs a GPU).")(
+    handle_errors(server_cmd.serve_command)
+)
+app.command("stop", help="Stop and remove the Triton container.")(
+    handle_errors(server_cmd.stop_command)
+)
+app.command("status", help="Show the Triton container and model readiness.")(
+    handle_errors(server_cmd.status_command)
 )
 app.command("optimize", help="Write an optimized copy of an ONNX model.")(
     handle_errors(optimize_cmd.optimize_command)
