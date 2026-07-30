@@ -102,10 +102,11 @@ guarantees. See [ONNX validation](pipeline/onnx-validation.md).
 
 `benchmark` (`warmup_iters` 50, `iters` 500, `batch_sizes` `[1]`, `concurrency` `[1]`,
 `precisions`, `seed`, `include_onnx_baseline` true; used by the [benchmark](benchmarking/methodology.md)
-stage) and, for the stages that are not implemented yet, `triton` (`repository_dir`, `model_version`, `precision`,
-`max_batch_size`, `instance_count`, `instance_gpus`, `dynamic_batching`, `image`, `container_name`,
-ports, `startup_timeout_s`) is validated and used by `trtship package` and the Triton stages (see
-`docs/triton/model-repository.md`); the server-related fields are used once server management lands.
+stage) and `triton` (`repository_dir`, `model_version`, `precision`, `max_batch_size`,
+`instance_count`, `instance_gpus`, `dynamic_batching`, `image`, `container_name`, `bind_address`,
+`http_port`, `grpc_port`, `metrics_port`, `startup_timeout_s`). The repository fields are used by
+`trtship package` (see [model repository](triton/model-repository.md)); the server fields by
+`trtship serve|status|stop` (see [running Triton](triton/server.md)).
 There is deliberately no default Triton `image`: a TensorRT plan loads only in the TensorRT version
 that built it, so choose the Triton release that ships yours.
 

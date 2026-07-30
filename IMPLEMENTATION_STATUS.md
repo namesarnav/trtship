@@ -4,14 +4,14 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 13 - Triton server lifecycle (not started). Phase 12 is complete.
+Phase 14 - Triton clients (not started). Phases 12 and 13 are complete.
 
 ## Current task
 
-Implement `triton/server.py` and the `serve`, `stop`, `status` commands: run the Triton container
-through the Docker CLI (image from `triton.image`, no default), mount the model repository read-only,
-wait for `/v2/health/ready` and the model's ready state, and report failures with the container's
-logs. Then Phase 14 (HTTP/gRPC clients) and Phase 15 (Triton vs direct TensorRT benchmarking).
+Implement `triton/client.py`: HTTP and gRPC clients over `tritonclient` (server/model metadata,
+readiness, inference with numpy tensors, structured errors), tested on CPU against a fake transport
+and, where possible, a local stub server. Then Phase 15 (benchmark Triton vs direct TensorRT with a
+latency decomposition) and a deployment-validation step comparing Triton outputs with PyTorch.
 
 ## Completed phases
 
@@ -90,7 +90,7 @@ logs. Then Phase 14 (HTTP/gRPC clients) and Phase 15 (Triton vs direct TensorRT 
     real CLI (run, report, resume, cache reuse, independent validation), ruff, mypy --strict.
   - Still to do in these phases: engine stages plug into the same orchestrator as Phases 7-15 land
     (build/calibrate/validate_engine/benchmark/package/serve); `benchmark compare`, `package`,
-    `serve`, `stop`, `status` CLI commands (`package` landed in Phase 12); benchmark sections in `trtship report` (Phase 11).
+    `package` (Phase 12) and `serve`/`stop`/`status` (Phase 13) CLI commands; benchmark sections in `trtship report` (Phase 11).
 
 - **Phase 7** - TensorRT engine builder: **implemented, NOT verified on hardware** (2026-09-19).
   - `tensorrt/` (`loader`, `profiles`, `engine_info`, `build`), `trtship build`, `build` pipeline
@@ -137,14 +137,22 @@ logs. Then Phase 14 (HTTP/gRPC clients) and Phase 15 (Triton vs direct TensorRT 
     dynamic, static, multi-tensor, all-dtype and batching cases are parsed by `tritonclient`'s
     `ModelConfig`. **BLOCKED BY ENVIRONMENT:** loading the repository in a Triton server.
 
+- **Phase 13** - Triton server lifecycle: orchestration **verified on CPU** with stand-ins;
+  `status`/`stop` also exercised against real Docker; **no real Triton container started**
+  (2026-09-19).
+  - `triton/server.py`, `serve`/`stop`/`status` commands, `triton.bind_address`,
+    `docs/triton/server.md`, D-029.
+  - Verified: 752 tests passing, 6 skipped (GPU), ruff, mypy --strict. **BLOCKED BY ENVIRONMENT:**
+    starting Triton needs a GPU, the NVIDIA container runtime, and the Triton image.
+
 ## Remaining tasks
 
-Phases 13-15 (Triton server, clients, benchmarking), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
+Phases 14-15 (Triton clients, benchmarking), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (722 passed, 6 skipped after Phase 12)
+- Passing: see `make check` (752 passed, 6 skipped after Phase 13)
 - Failing: none
 - Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
@@ -194,5 +202,5 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 13: Triton server lifecycle via Docker. If a GPU machine becomes available
+Phase 14: Triton HTTP/gRPC clients. If a GPU machine becomes available
 first, run `pytest -m tensorrt -v` to verify Phases 7-10.

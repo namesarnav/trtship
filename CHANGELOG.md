@@ -75,9 +75,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `<model>/<version>/model.plan` layout, refusal to package an engine that failed validation, and
   an engine description file written by `trtship build`. Tests parse the output with Triton's
   protobuf schema; **no Triton server has loaded it**.
+- Triton server management (`trtship serve|status|stop`): Docker CLI (argv only), read-only
+  repository mount, ports bound to `triton.bind_address` (default `127.0.0.1`), readiness polling
+  of the server and every model, container logs in failures, cleanup of a failed start. No real
+  Triton container has been started; `status`/`stop` were run against real Docker.
 - Capability preflight now runs before a run directory is created.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 
 #### Notes
-- Triton server management and clients do not exist yet.
+- Triton clients and Triton benchmarking do not exist yet.

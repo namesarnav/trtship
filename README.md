@@ -32,7 +32,8 @@ GPU hardware.
 | Engine executor and numerical validation (`validate engine`, `validate_engine` stage) | implemented; logic tested with stand-in executors and a fake TensorRT; **not yet verified on hardware** |
 | Benchmarking (`trtship benchmark onnx/engine/compare`, `benchmark` stage), benchmark reports | ONNX Runtime CPU backend real and runnable; TensorRT backend implemented, tested with a fake, **not yet verified on hardware** |
 | Triton model repository (`trtship package`, `package` stage) | implemented; `config.pbtxt` validated against Triton's protobuf schema, **not yet loaded by a Triton server** |
-| Triton server management, clients | planned |
+| Triton server management (`serve`, `stop`, `status`) | implemented; orchestration tested with stand-ins, `status`/`stop` exercised against real Docker, **no real Triton container started** |
+| Triton clients, Triton benchmarking | planned |
 | Pipeline orchestration (`trtship run`, `report`, `init`), artifact store, run caching and resume | implemented, tested (CPU stages) |
 | Remaining stages in `trtship run` (package, serve) | planned |
 
@@ -71,6 +72,7 @@ trtship run configs/examples/custom_model.yaml --until optimize   # the CPU stag
 trtship report                          # summarize the latest run
 trtship build cfg.yaml model.onnx -o engines/   # TensorRT engines (needs a GPU; see docs/pipeline/tensorrt.md)
 trtship package cfg.yaml engines/m.fp16.plan -o model_repository   # Triton repository (no GPU needed)
+trtship serve cfg.yaml | status cfg.yaml | stop cfg.yaml           # Triton in Docker (needs a GPU and triton.image)
 trtship inspect my-config.yaml          # parameters, memory estimate, I/O signature, module tree
 trtship export my-config.yaml -o model.onnx   # ONNX export, verified against the model signature
 trtship validate onnx my-config.yaml model.onnx   # graph checks + PyTorch-vs-ONNX at min/opt/max shapes
@@ -141,7 +143,7 @@ runs/2026-09-19_ab12cd/
   [TensorRT](docs/pipeline/tensorrt.md), [INT8 calibration](docs/calibration/int8.md),
   [engine validation](docs/pipeline/engine-validation.md),
   [benchmarking](docs/benchmarking/methodology.md),
-  [Triton model repository](docs/triton/model-repository.md)
+  [Triton model repository](docs/triton/model-repository.md), [running Triton](docs/triton/server.md)
 
 ## Architecture
 

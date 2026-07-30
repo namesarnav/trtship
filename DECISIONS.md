@@ -321,3 +321,23 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **Verified against Triton's schema, not a server.** Tests parse the output with
   `tritonclient`'s `model_config_pb2`, which validates syntax and field values. No Triton server
   has loaded the result. `tritonclient` is a dev dependency for this reason.
+
+## D-029 - Triton server lifecycle design (2026-09-19)
+
+- **Docker CLI, not a Docker SDK.** One less dependency, the same commands the user would run, and
+  every call is an argv list. The runner and the HTTP transport are injected, so orchestration is
+  tested without Docker; `status` and `stop` were additionally run against the real daemon.
+- **Local by default.** Triton has no authentication, so ports are published on `127.0.0.1` unless
+  `triton.bind_address` says otherwise. Container and address values are validated (a container name
+  must be a plain Docker name), and the repository is mounted read-only.
+- **No default image.** A plan loads only in the TensorRT
+  version that built it, and guessing the Triton tag would fail at load time with a confusing error.
+- **Never leave a half-started server, never touch someone else's container.** A failed `serve`
+  captures the last container log lines into the error and removes the container it created;
+  a pre-existing container of the same name makes `serve` refuse before doing anything.
+- **Unknown is not "not ready".** If the server cannot be reached, `status` reports `ready: null`
+  with a note. Only an actual non-200 answer is "not ready".
+- **Stdlib HTTP.** Readiness and status use `urllib` (plain http only) so `serve` works without the
+  optional `tritonclient`; the clients of Phase 14 are a separate layer.
+- **Unverified pieces are named.** The `--gpus all` flag and the `/v2/repository/index` endpoint are
+  used as their projects document them; neither has been observed against a real Triton here.
