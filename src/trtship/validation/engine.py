@@ -15,7 +15,7 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 import numpy.typing as npt
 import torch
@@ -34,6 +34,7 @@ from trtship.validation.metrics import TensorComparison, compare_outputs, worst_
 log = get_logger(__name__)
 
 REPORT_SCHEMA_VERSION = 1
+Backend = Literal["tensorrt", "triton-http", "triton-grpc"]
 
 
 class EngineExecutor(Protocol):
@@ -76,6 +77,7 @@ class PrecisionResult(_Frozen):
 class EngineValidationReport(_Frozen):
     schema_version: int = REPORT_SCHEMA_VERSION
     generated_at: datetime
+    backend: Backend = "tensorrt"  # what executed the engine: directly, or through Triton
     onnx_path: str
     onnx_sha256: str
     model_name: str
@@ -160,6 +162,7 @@ def validate_engines(
     signature: ModelSignature,
     config: TrtshipConfig,
     executor_factory: Callable[[Path], EngineExecutor],
+    backend: Backend = "tensorrt",
 ) -> EngineValidationReport:
     """Validate each engine in ``engines``. Comparison failures are recorded in the report (see
     ``raise_for_failure``); only a missing or unloadable engine raises."""
@@ -209,6 +212,7 @@ def validate_engines(
         )
     return EngineValidationReport(
         generated_at=utc_now(),
+        backend=backend,
         onnx_path=str(onnx_path),
         onnx_sha256=sha256_file(onnx_path),
         model_name=model.name,

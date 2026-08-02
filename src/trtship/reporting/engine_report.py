@@ -19,7 +19,8 @@ def _fixed(value: float | None, digits: int = 5) -> str:
 
 def render_engine_validation(report: EngineValidationReport, console: Console) -> None:
     verdict = "[bold green]PASSED[/]" if report.passed else "[bold red]FAILED[/]"
-    console.print(f"Engine validation {verdict}  model {escape(report.model_name)}")
+    via = "" if report.backend == "tensorrt" else f" via {report.backend}"
+    console.print(f"Engine validation{via} {verdict}  model {escape(report.model_name)}")
     console.print(
         f"reference: PyTorch; also compared with onnxruntime {report.ort_version} on the CPU; "
         f"seed {report.seed}; {report.duration_s}s"
