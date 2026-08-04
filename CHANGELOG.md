@@ -79,9 +79,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   repository mount, ports bound to `triton.bind_address` (default `127.0.0.1`), readiness polling
   of the server and every model, container logs in failures, cleanup of a failed start. No real
   Triton container has been started; `status`/`stop` were run against real Docker.
+- Triton clients (`trtship.triton.TritonClient`, HTTP and gRPC over `tritonclient`): health, metadata,
+  binary-tensor inference, structured errors, readiness waiting; `trtship validate triton` compares a
+  served model with PyTorch using the engine-validation gates. Tested against a KServe v2 stub with
+  the real client library; **not yet run against a real Triton server**.
 - Capability preflight now runs before a run directory is created.
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 
 #### Notes
-- Triton clients and Triton benchmarking do not exist yet.
+- Triton benchmarking does not exist yet.

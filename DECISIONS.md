@@ -341,3 +341,22 @@ is covered by the existing trust statement: `kind: module` runs your code by des
   optional `tritonclient`; the clients of Phase 14 are a separate layer.
 - **Unverified pieces are named.** The `--gpus all` flag and the `/v2/repository/index` endpoint are
   used as their projects document them; neither has been observed against a real Triton here.
+
+## D-030 - Triton client design (2026-09-19)
+
+- **One wrapper over both protocols.** `tritonclient.http` and `.grpc` expose the same operations, so
+  a single `TritonClient` is parameterized by the module and normalizes the differences (gRPC's
+  JSON form carries shapes as strings). Everything downstream (validation, later benchmarking)
+  is written once against it.
+- **Only client-library and socket errors are translated.** `InferenceServerException` and
+  `OSError` become `TritonError`; anything else is a bug in trtship and is allowed to surface
+  instead of being disguised as a server failure.
+- **Binary tensor data.** HTTP requests ask for binary outputs, so float tensors are not rounded
+  through JSON and large batches are not slow for the wrong reason.
+- **Validation reuses the engine-validation machinery.** A served model is just another executor
+  (`TritonExecutor`), so shape points, tolerances, metrics and the report schema are shared; the
+  report gained a `backend` field (`tensorrt`, `triton-http`, `triton-grpc`) so a result can never
+  be mistaken for a direct-TensorRT one. The default keeps existing reports valid.
+- **A protocol stub, labelled as one.** `tests/fakes/fake_triton.py` implements the KServe v2
+  endpoints over real HTTP and gRPC sockets so the real `tritonclient` code paths run in CI without a
+  GPU. It serves ordinary Python functions; no claim about Triton's behavior rests on it.
