@@ -1,8 +1,11 @@
 """Triton Inference Server integration: repositories, the server container, and clients."""
 
 from trtship.triton.client import (
+    InferTiming,
     ModelMetadata,
+    ModelStatistics,
     ServerMetadata,
+    StageStatistic,
     TensorMetadata,
     TritonClient,
     TritonExecutor,
@@ -13,11 +16,14 @@ from trtship.triton.repository import RepositoryResult, build_repository, load_e
 from trtship.triton.server import ModelState, ServerStatus, TritonServer
 
 __all__ = [
+    "InferTiming",
     "ModelMetadata",
     "ModelState",
+    "ModelStatistics",
     "RepositoryResult",
     "ServerMetadata",
     "ServerStatus",
+    "StageStatistic",
     "TensorMetadata",
     "TritonClient",
     "TritonExecutor",

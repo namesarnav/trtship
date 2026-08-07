@@ -39,6 +39,17 @@ class StubModel:
     function: Callable[[Arrays], Arrays]
     ready: bool = True
     platform: str = "tensorrt_plan"
+    # Synthetic per-request server-side durations, added to the model's statistics on every
+    # successful request. They are constants chosen by the test, not measurements.
+    stage_ns: dict[str, int] = field(
+        default_factory=lambda: {
+            "queue": 100_000,
+            "compute_input": 50_000,
+            "compute_infer": 400_000,
+            "compute_output": 30_000,
+        }
+    )
+    successes: int = 0
 
 
 @dataclass
@@ -50,6 +61,27 @@ class StubState:
 
     def add(self, model: StubModel) -> None:
         self.models[model.name] = model
+
+    def record_success(self, model: StubModel) -> None:
+        model.successes += 1
+
+
+def _statistics(model: StubModel) -> dict[str, Any]:
+    n = model.successes
+    stats: dict[str, Any] = {"success": {"count": n, "ns": 0}}
+    for stage, per_request in model.stage_ns.items():
+        stats[stage] = {"count": n, "ns": n * per_request}
+    return {
+        "model_stats": [
+            {
+                "name": model.name,
+                "version": "1",
+                "inference_count": n,
+                "execution_count": n,
+                "inference_stats": stats,
+            }
+        ]
+    }
 
 
 def _model_metadata(model: StubModel) -> dict[str, Any]:
@@ -109,6 +141,8 @@ def _http_handler(state: StubState) -> type[BaseHTTPRequestHandler]:
                     )
                 elif len(parts) > 4 and parts[4] == "ready":
                     self._send(200 if model.ready else 400)
+                elif len(parts) > 4 and parts[4] == "stats":
+                    self._json(200, _statistics(model))
                 else:
                     self._json(200, _model_metadata(model))
             else:
@@ -162,6 +196,7 @@ def _http_handler(state: StubState) -> type[BaseHTTPRequestHandler]:
             except Exception as exc:
                 self._json(400, {"error": f"inference failed: {exc}"})
                 return
+            state.record_success(model)
             wanted = {o["name"]: o for o in header.get("outputs", [])}
             descriptors: list[dict[str, Any]] = []
             chunks: list[bytes] = []
@@ -237,6 +272,21 @@ class _Servicer(service_pb2_grpc.GRPCInferenceServiceServicer):  # type: ignore[
             response.outputs.add(name=tensor.name, datatype=tensor.datatype, shape=tensor.shape)
         return response
 
+    def ModelStatistics(self, request: Any, context: Any) -> Any:
+        model = self._model(request.name, context)
+        entry = _statistics(model)["model_stats"][0]
+        response = service_pb2.ModelStatisticsResponse()
+        stats = response.model_stats.add(
+            name=entry["name"],
+            version=entry["version"],
+            inference_count=entry["inference_count"],
+            execution_count=entry["execution_count"],
+        )
+        for stage, item in entry["inference_stats"].items():
+            getattr(stats.inference_stats, stage).count = item["count"]
+            getattr(stats.inference_stats, stage).ns = item["ns"]
+        return response
+
     def ModelInfer(self, request: Any, context: Any) -> Any:
         model = self._model(request.model_name, context)
         inputs: Arrays = {}
@@ -249,6 +299,7 @@ class _Servicer(service_pb2_grpc.GRPCInferenceServiceServicer):  # type: ignore[
             outputs = model.function(inputs)
         except Exception as exc:
             context.abort(grpc.StatusCode.INTERNAL, f"inference failed: {exc}")
+        self.state.record_success(model)
         wanted = {o.name for o in request.outputs}
         response = service_pb2.ModelInferResponse(model_name=model.name, model_version="1")
         for name, array in outputs.items():

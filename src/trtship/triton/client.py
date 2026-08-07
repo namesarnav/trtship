@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from types import ModuleType
 from typing import Any, Literal
 
@@ -40,6 +41,36 @@ class ModelMetadata(BaseModel):
     platform: str = ""
     inputs: list[TensorMetadata]
     outputs: list[TensorMetadata]
+
+
+class StageStatistic(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    count: int = 0
+    ns: int = 0
+
+
+class ModelStatistics(BaseModel):
+    """Triton's cumulative per-model counters (the statistics extension), summed over versions."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    inference_count: int = 0
+    execution_count: int = 0
+    success: StageStatistic = StageStatistic()
+    queue: StageStatistic = StageStatistic()
+    compute_input: StageStatistic = StageStatistic()
+    compute_infer: StageStatistic = StageStatistic()
+    compute_output: StageStatistic = StageStatistic()
+
+
+@dataclass(frozen=True)
+class InferTiming:
+    """Where the client's time went for one request (milliseconds)."""
+
+    prepare_ms: float  # building the request tensors
+    request_ms: float  # the call: serialization, network, server, response parsing
+    decode_ms: float  # turning the response into numpy arrays
 
 
 class ServerMetadata(BaseModel):
@@ -196,9 +227,20 @@ class TritonClient:
         outputs: list[str] | None = None,
     ) -> dict[str, npt.NDArray[Any]]:
         """Run one request and return the requested outputs (default: every output)."""
+        return self.infer_timed(model, inputs, outputs)[0]
+
+    def infer_timed(
+        self,
+        model: str,
+        inputs: Mapping[str, npt.NDArray[Any]],
+        outputs: list[str] | None = None,
+    ) -> tuple[dict[str, npt.NDArray[Any]], InferTiming]:
+        """Like :meth:`infer`, also returning where the client's time went."""
         from tritonclient.utils import np_to_triton_dtype  # noqa: PLC0415
 
         module = self._module
+        names = outputs or self._output_names(model)
+        t0 = time.perf_counter()
         request_inputs = []
         for name, array in inputs.items():
             contiguous = np.ascontiguousarray(array)
@@ -207,17 +249,42 @@ class TritonClient:
             )
             tensor.set_data_from_numpy(contiguous)
             request_inputs.append(tensor)
-        names = outputs or self._output_names(model)
         requested = [self._requested_output(n) for n in names]
+        t1 = time.perf_counter()
         result = self._call(
             f"inference on model {model!r}",
             lambda: self._client.infer(model, request_inputs, outputs=requested, **self._timeout()),
         )
+        t2 = time.perf_counter()
         arrays = {name: result.as_numpy(name) for name in names}
+        t3 = time.perf_counter()
         missing = [n for n, a in arrays.items() if a is None]
         if missing:
             raise TritonError(f"the response for model {model!r} has no output(s): {missing}")
-        return arrays
+        return arrays, InferTiming((t1 - t0) * 1000, (t2 - t1) * 1000, (t3 - t2) * 1000)
+
+    def inference_statistics(self, model: str) -> ModelStatistics:
+        """Triton's cumulative counters for ``model`` (queue and compute time, request counts)."""
+        raw = self._call(f"statistics request for model {model!r}", lambda: self._statistics(model))
+        total: dict[str, Any] = {"inference_count": 0, "execution_count": 0}
+        stages = ("success", "queue", "compute_input", "compute_infer", "compute_output")
+        for stage in stages:
+            total[stage] = {"count": 0, "ns": 0}
+        for entry in raw.get("model_stats", []):
+            total["inference_count"] += int(entry.get("inference_count", 0))
+            total["execution_count"] += int(entry.get("execution_count", 0))
+            for stage in stages:
+                item = entry.get("inference_stats", {}).get(stage, {})
+                total[stage]["count"] += int(item.get("count", 0))
+                total[stage]["ns"] += int(item.get("ns", 0))
+        return ModelStatistics.model_validate(total)
+
+    def _statistics(self, model: str) -> dict[str, Any]:
+        if self.protocol == "grpc":
+            return dict(
+                self._client.get_inference_statistics(model, as_json=True, **self._timeout())
+            )
+        return dict(self._client.get_inference_statistics(model))
 
 
 class TritonExecutor:
