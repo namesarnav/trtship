@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import math
+import threading
 from collections.abc import Callable, Iterator
 
 import numpy as np
 import pytest
 
 from trtship.benchmark import PhaseTimes, measure, summarize
-from trtship.benchmark.schema import MemoryUsage
+from trtship.benchmark.schema import MemoryUsage, ServerSideTimes
 from trtship.errors import BenchmarkError
 
 # --------------------------------------------------------------------------- statistics
@@ -240,3 +241,104 @@ def test_raw_samples_can_be_omitted() -> None:
         FakeTarget(), batch_size=1, concurrency=1, warmup_iters=0, iters=6, include_raw=False
     )
     assert dropped.raw_ms == {}
+
+
+def test_each_worker_warms_and_is_timed_on_a_single_thread() -> None:
+    threads: dict[int, set[int]] = {}
+
+    class Recording(FakeTarget):
+        def make_worker(self) -> Callable[[], PhaseTimes]:
+            index = self.workers_made
+            self.workers_made += 1
+
+            def once() -> PhaseTimes:
+                threads.setdefault(index, set()).add(threading.get_ident())
+                return self.phases
+
+            return once
+
+    measure(Recording(), batch_size=1, concurrency=3, warmup_iters=2, iters=3)
+    # Worker 0 also makes the cold call on the calling thread; warmup and timing share one thread.
+    for index in (1, 2):
+        assert len(threads[index]) == 1
+    assert len({next(iter(t)) for i, t in threads.items() if i != 0}) == 2  # distinct threads
+
+
+def test_a_failing_worker_does_not_leave_the_others_waiting() -> None:
+    target = FakeTarget()
+    target.fail_on_call = 4  # inside the warmup of one worker, others are still running
+    result: list[BaseException] = []
+
+    def attempt() -> None:
+        try:
+            measure(target, batch_size=1, concurrency=3, warmup_iters=5, iters=5)
+        except BaseException as exc:
+            result.append(exc)
+
+    thread = threading.Thread(target=attempt, daemon=True)
+    thread.start()
+    thread.join(timeout=10)
+    assert not thread.is_alive(), "measure() hung after a worker failed"
+    assert isinstance(result[0], BenchmarkError)
+    assert "device lost" in str(result[0])
+
+
+class ObservedTarget(FakeTarget):
+    def __init__(self) -> None:
+        super().__init__()
+        self.events: list[str] = []
+
+    def make_worker(self) -> Callable[[], PhaseTimes]:
+        inner = super().make_worker()
+
+        def once() -> PhaseTimes:
+            self.events.append("call")
+            return inner()
+
+        return once
+
+    def timed_started(self) -> None:
+        self.events.append("started")
+
+    def timed_finished(self, requests_sent: int) -> ServerSideTimes | None:
+        self.events.append(f"finished:{requests_sent}")
+        return ServerSideTimes(
+            source="test",
+            requests=requests_sent,
+            queue_ms=1.0,
+            compute_input_ms=2.0,
+            compute_infer_ms=3.0,
+            compute_output_ms=4.0,
+        )
+
+
+def test_the_observer_brackets_exactly_the_timed_calls() -> None:
+    target = ObservedTarget()
+    m = measure(target, batch_size=1, concurrency=1, warmup_iters=2, iters=3)
+    # cold call + 2 warmup calls, then the timed section, then the closing read
+    assert target.events == ["call"] * 3 + ["started"] + ["call"] * 3 + ["finished:3"]
+    assert m.server_side is not None
+    assert m.server_side.total_ms == pytest.approx(10.0)
+
+
+def test_with_concurrency_the_observer_starts_once_after_all_warmup() -> None:
+    target = ObservedTarget()
+    measure(target, batch_size=1, concurrency=3, warmup_iters=2, iters=2)
+    started = target.events.index("started")
+    assert target.events.count("started") == 1
+    assert target.events[:started].count("call") == 1 + 3 * 2  # cold call + every warmup call
+    assert target.events[started + 1 : -1] == ["call"] * 6
+    assert target.events[-1] == "finished:6"
+
+
+def test_a_failed_measurement_does_not_read_the_server_again() -> None:
+    target = ObservedTarget()
+    target.fail_on_call = 2
+    with pytest.raises(BenchmarkError):
+        measure(target, batch_size=1, concurrency=1, warmup_iters=3, iters=3)
+    assert not any(e.startswith("finished") for e in target.events)
+
+
+def test_targets_without_an_observer_report_no_server_side_times() -> None:
+    m = measure(FakeTarget(), batch_size=1, concurrency=1, warmup_iters=0, iters=2)
+    assert m.server_side is None

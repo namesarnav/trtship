@@ -13,11 +13,13 @@ from trtship.benchmark.schema import (
     BenchmarkSubject,
 )
 from trtship.benchmark.targets import OrtTarget, TensorRTTarget, describe_environment
+from trtship.benchmark.triton_target import TritonTarget
 from trtship.config import Precision, TrtshipConfig
 from trtship.errors import BenchmarkError
 from trtship.logging import get_logger
 from trtship.models import LoadedModel
 from trtship.tensorrt.executor import TensorRTExecutor
+from trtship.triton.client import TritonClient
 from trtship.utils.env import EnvironmentReport
 from trtship.utils.hashing import sha256_file
 from trtship.utils.timeutil import utc_now
@@ -143,6 +145,50 @@ def benchmark_engines(
             path=str(first[1]) if len(engines) == 1 else None,
             sha256=sha256_file(first[1]) if len(engines) == 1 else None,
             precision=first[0].value if len(engines) == 1 else None,
+        ),
+        environment=_environment(environment),
+        seed=seed,
+        measurements=matrix.measurements,
+        skipped=matrix.skipped,
+    )
+
+
+def benchmark_triton(
+    client_factory: Callable[[], TritonClient],
+    model: LoadedModel,
+    config: TrtshipConfig,
+    environment: EnvironmentReport,
+    *,
+    protocol: str,
+    precision: Precision | None,
+    endpoint: str,
+    plan: Path | None = None,
+    include_raw: bool = True,
+) -> BenchmarkReport:
+    """Benchmark the model served by a running Triton server through its client API."""
+    seed = config.benchmark.seed if config.benchmark.seed is not None else config.seed
+    target = TritonTarget(
+        client_factory,
+        config.model.name,
+        config,
+        seed,
+        protocol=protocol,
+        precision=precision.value if precision else None,
+        device=f"triton server at {endpoint}",
+    )
+    try:
+        matrix = run_matrix(target, config, include_raw=include_raw)
+    finally:
+        target.close()
+    return BenchmarkReport(
+        generated_at=utc_now(),
+        model_name=model.name,
+        weights_sha256=model.weights_sha256,
+        subject=BenchmarkSubject(
+            kind="triton",
+            path=str(plan) if plan else None,
+            sha256=sha256_file(plan) if plan else None,
+            precision=precision.value if precision else None,
         ),
         environment=_environment(environment),
         seed=seed,

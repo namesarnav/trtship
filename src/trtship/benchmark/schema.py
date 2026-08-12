@@ -33,6 +33,28 @@ class MemoryUsage(_Frozen):
     cpu_rss_mb: float | None = None  # peak resident set size of this process
 
 
+class ServerSideTimes(_Frozen):
+    """Per-request means reported by the server itself over the timed section of a measurement.
+
+    Read from Triton's cumulative statistics before and after the timed iterations, so warmup and
+    the cold call are excluded. Each figure is the server's own clock, not something trtship
+    infers; the client-side remainder is derived from them in the overhead report.
+    """
+
+    source: str
+    requests: int  # requests the server counted during the timed section
+    queue_ms: float
+    compute_input_ms: float
+    compute_infer_ms: float
+    compute_output_ms: float
+
+    @property
+    def total_ms(self) -> float:
+        return (
+            self.queue_ms + self.compute_input_ms + self.compute_infer_ms + self.compute_output_ms
+        )
+
+
 class BenchmarkMeasurement(_Frozen):
     backend: str  # e.g. "onnxruntime-cpu", "tensorrt", "triton-http"
     precision: str | None
@@ -47,6 +69,7 @@ class BenchmarkMeasurement(_Frozen):
     requests_per_s: float
     duration_s: float
     memory: MemoryUsage
+    server_side: ServerSideTimes | None = None  # served backends only
     notes: list[str] = Field(default_factory=list)
     raw_ms: dict[str, list[float]] = Field(default_factory=dict)  # per-phase samples
 

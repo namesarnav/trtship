@@ -79,6 +79,25 @@ def render_benchmark(report: BenchmarkReport, console: Console) -> None:
             f"{m.first_call_ms:.2f}",
         )
     console.print(table)
+    served = [m for m in report.measurements if m.server_side is not None]
+    if served:
+        side = Table(title="Server-side means per request (ms)", title_justify="left")
+        for column in ("Backend", "Batch", "Conc", "Queue", "Input", "Infer", "Output", "Requests"):
+            side.add_column(column, justify="left" if column == "Backend" else "right")
+        for m in served:
+            t = m.server_side
+            assert t is not None
+            side.add_row(
+                m.backend,
+                str(m.batch_size),
+                str(m.concurrency),
+                f"{t.queue_ms:.3f}",
+                f"{t.compute_input_ms:.3f}",
+                f"{t.compute_infer_ms:.3f}",
+                f"{t.compute_output_ms:.3f}",
+                str(t.requests),
+            )
+        console.print(side)
     for m in report.measurements:
         for note in m.notes:
             console.print(f"[dim]{escape(_label(_key(m)))}:[/] {escape(note)}", highlight=False)
@@ -107,6 +126,24 @@ def render_benchmark_markdown(report: BenchmarkReport) -> str:
             f"{e2e.p50_ms:.3f} | {e2e.p95_ms:.3f} | {e2e.p99_ms:.3f} | {execute.p50_ms:.3f} | "
             f"{m.throughput_samples_per_s:,.1f} | {_mb(m.memory.gpu_mb)} |"
         )
+    served = [m for m in report.measurements if m.server_side is not None]
+    if served:
+        lines += [
+            "",
+            "## Server-side means per request",
+            "",
+            "| Backend | Batch | Concurrency | Queue (ms) | Compute input (ms) | "
+            "Compute infer (ms) | Compute output (ms) | Requests |",
+            "|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+        for m in served:
+            t = m.server_side
+            assert t is not None
+            lines.append(
+                f"| {m.backend} | {m.batch_size} | {m.concurrency} | {t.queue_ms:.3f} | "
+                f"{t.compute_input_ms:.3f} | {t.compute_infer_ms:.3f} | "
+                f"{t.compute_output_ms:.3f} | {t.requests} |"
+            )
     notes = sorted({note for m in report.measurements for note in m.notes})
     if notes or report.skipped:
         lines += ["", "## Notes", ""]
@@ -145,10 +182,8 @@ def _pct(a: float, b: float) -> float:
     return (b - a) / a * 100.0 if a else 0.0
 
 
-def compare_reports(a: list[BenchmarkReport], b: list[BenchmarkReport]) -> Comparison:
-    """Compare two sets of measurements matched on (backend, precision, batch, concurrency)."""
-    left = {_key(m): m for r in a for m in r.measurements}
-    right = {_key(m): m for r in b for m in r.measurements}
+def environment_warnings(a: list[BenchmarkReport], b: list[BenchmarkReport]) -> list[str]:
+    """Reasons two sets of reports may not be comparable: hardware, tool versions, or weights."""
     warnings: list[str] = []
     gpus_a = {g for r in a for g in r.environment.get("gpus", [])}
     gpus_b = {g for r in b for g in r.environment.get("gpus", [])}
@@ -170,6 +205,14 @@ def compare_reports(a: list[BenchmarkReport], b: list[BenchmarkReport]) -> Compa
     weights_b = {r.weights_sha256 for r in b}
     if weights_a != weights_b:
         warnings.append("the runs benchmarked different model weights")
+    return warnings
+
+
+def compare_reports(a: list[BenchmarkReport], b: list[BenchmarkReport]) -> Comparison:
+    """Compare two sets of measurements matched on (backend, precision, batch, concurrency)."""
+    left = {_key(m): m for r in a for m in r.measurements}
+    right = {_key(m): m for r in b for m in r.measurements}
+    warnings = environment_warnings(a, b)
     deltas = []
     for key in sorted(left.keys() & right.keys()):
         ma, mb = left[key], right[key]

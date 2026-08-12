@@ -10,9 +10,9 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
-from trtship.benchmark.schema import PHASES, BenchmarkMeasurement, MemoryUsage
+from trtship.benchmark.schema import PHASES, BenchmarkMeasurement, MemoryUsage, ServerSideTimes
 from trtship.benchmark.stats import summarize
 from trtship.errors import BenchmarkError, TrtshipError
 from trtship.logging import get_logger
@@ -55,6 +55,15 @@ class BenchmarkTarget(Protocol):
     def close(self) -> None: ...
 
 
+@runtime_checkable
+class ServerSideObserver(Protocol):
+    """Optional target capability: the serving side reports its own timing for the timed section."""
+
+    def timed_started(self) -> None: ...
+
+    def timed_finished(self, requests_sent: int) -> ServerSideTimes | None: ...
+
+
 def measure(
     target: BenchmarkTarget,
     *,
@@ -86,32 +95,39 @@ def measure(
     except Exception as exc:
         raise _wrap(exc) from exc
     errors: list[BaseException] = []
+    results: list[list[tuple[PhaseTimes, float]]] = [[] for _ in workers]
+    observer = target if isinstance(target, ServerSideObserver) else None
+    started = 0.0
 
-    def warm(worker: Callable[[], PhaseTimes], index: int) -> None:
+    def begin() -> None:
+        # Runs once, after every worker has finished warmup and before any starts timing.
+        nonlocal started
+        if observer is not None:
+            observer.timed_started()
+        started = clock()
+
+    barrier = threading.Barrier(len(workers), action=begin)
+
+    def run(worker: Callable[[], PhaseTimes], index: int) -> None:
+        # Warmup and timing share one thread per worker: clients that are bound to the thread that
+        # created them (tritonclient over HTTP) must not migrate between the two phases.
         try:
             for _ in range(warmup_iters):
                 worker()
-        except BaseException as exc:
-            errors.append(exc)
-
-    _run_parallel(workers, warm)
-    if errors:
-        raise _wrap(errors[0])
-
-    results: list[list[tuple[PhaseTimes, float]]] = [[] for _ in workers]
-
-    def timed(worker: Callable[[], PhaseTimes], index: int) -> None:
-        try:
+            barrier.wait()
             for _ in range(iters):
                 results[index].append(_timed_call(worker, clock))
+        except threading.BrokenBarrierError:
+            pass  # another worker failed; its error is the one reported
         except BaseException as exc:
             errors.append(exc)
+            barrier.abort()
 
-    started = clock()
-    _run_parallel(workers, timed)
+    _run_parallel(workers, run)
     duration = clock() - started
     if errors:
         raise _wrap(errors[0])
+    server_side = observer.timed_finished(concurrency * iters) if observer is not None else None
 
     samples = [item for per_worker in results for item in per_worker]
     columns = {
@@ -135,6 +151,7 @@ def measure(
         requests_per_s=total_requests / duration if duration > 0 else 0.0,
         duration_s=duration,
         memory=target.memory(),
+        server_side=server_side,
         notes=_noise_notes(columns["end_to_end"], iters) + target.notes(),
         raw_ms={k: [round(v, 6) for v in vals] for k, vals in columns.items()}
         if include_raw
