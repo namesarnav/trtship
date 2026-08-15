@@ -4,7 +4,7 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 15 - Triton benchmarking (not started). Phases 12-14 are complete.
+Phase 20 - remaining CLI polish (not started). Phases 12-15 are complete.
 
 ## Current task
 
@@ -155,14 +155,24 @@ remaining phases: CLI completion (Phase 20), tests and contract tests (21), exam
   - Verified: 780 tests passing, 6 skipped (GPU), ruff, mypy --strict. **BLOCKED BY ENVIRONMENT:**
     validating a real served TensorRT model.
 
+- **Phase 15** - Triton benchmarking: **verified on CPU** against the KServe v2 stub using the real
+  `tritonclient` over HTTP and gRPC; **not run against a real Triton server** (2026-09-19).
+  - `benchmark/triton_target.py`, `ServerSideObserver` and `ServerSideTimes`, `trtship benchmark
+    triton` and `benchmark overhead`, `reporting/serving_report.py`, `docs/triton/benchmarking.md`,
+    D-031. `measure()` now runs each worker's warmup and timing on one thread (gevent-bound HTTP
+    clients cannot migrate between threads).
+  - Verified: 806 tests passing, 6 skipped (GPU), ruff, mypy --strict. The stub's server statistics
+    are synthetic constants: they prove the delta arithmetic and plumbing, not real Triton
+    behaviour. **BLOCKED BY ENVIRONMENT:** measuring a real served TensorRT engine.
+
 ## Remaining tasks
 
-Phase 15 (Triton benchmarking), 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
+Phases 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (780 passed, 6 skipped after Phase 14)
+- Passing: see `make check` (806 passed, 6 skipped after Phase 15)
 - Failing: none
 - Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
@@ -181,7 +191,7 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 - Phase 7 TensorRT engine build, Phase 8 calibrator execution, Phase 9 TensorRT leg,
   Phase 10 TensorRT benchmarking, Phase 12 loading a repository in Triton, Phase 13 server lifecycle,
-  Phase 14 validating a real served model, Phase 15 Triton benchmarking.
+  Phase 14 validating a real served model, Phase 15 measuring a real served engine.
 
 ## Environment limitations (dev machine, observed 2026-09-19)
 
@@ -212,5 +222,6 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 15: Triton benchmarking. If a GPU machine becomes available
-first, run `pytest -m tensorrt -v` to verify Phases 7-10.
+Phase 20 onward (CLI polish, testing-suite completion, examples, Docker, CI, docs, audit). If a GPU
+machine becomes available first, run `pytest -m tensorrt -v` to verify Phases 7-10, then run
+`trtship serve`, `validate triton` and `benchmark triton` against a real Triton container.

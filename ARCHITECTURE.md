@@ -186,7 +186,8 @@ function of the seed and dataset identity.
 `precision`, `device`, `batch_size`, `concurrency`, `warmup_iters`, `measured_iters`, per-phase
 latency summaries (`preprocess`, `execute`, `postprocess`, `end_to_end`) each with
 `min/mean/p50/p90/p95/p99/max/stdev` in ms, `throughput_samples_per_s`, `gpu_memory_mb`,
-`cpu_memory_mb`, `environment` reference, and raw sample arrays stored alongside the JSON. Methodology
+`cpu_memory_mb`, an optional `server_side` block (mean queue/compute times from the server's
+statistics, served backends only), `environment` reference, and raw sample arrays stored alongside the JSON. Methodology
 (warmup, CUDA event timing for device phases, synchronization points, clock/power caveats) is in
 `docs/benchmarking/`. No number is ever produced without a measurement behind it.
 
@@ -199,7 +200,10 @@ consumes an `EngineInfo` value object, so it is unit-tested on CPU with syntheti
 the *extraction* of `EngineInfo` is the GPU-tested part. `serve/stop/status` drive the official
 `nvcr.io/nvidia/tritonserver` image via the Docker CLI (no shell string interpolation; argv lists
 only), and readiness is verified through the Triton health/model-ready endpoints. Clients wrap
-`tritonclient` HTTP and gRPC.
+`tritonclient` HTTP and gRPC. Served benchmarks (`TritonTarget`) measure through those clients and
+read the model's cumulative Triton statistics around the timed section, which become
+`server_side` on the measurement; `reporting.serving_report` pairs served and direct measurements
+to derive serving overhead.
 
 ## 8. Calibration
 

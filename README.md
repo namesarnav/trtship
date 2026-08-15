@@ -34,7 +34,7 @@ GPU hardware.
 | Triton model repository (`trtship package`, `package` stage) | implemented; `config.pbtxt` validated against Triton's protobuf schema, **not yet loaded by a Triton server** |
 | Triton server management (`serve`, `stop`, `status`) | implemented; orchestration tested with stand-ins, `status`/`stop` exercised against real Docker, **no real Triton container started** |
 | Triton clients (HTTP/gRPC), `validate triton` | implemented; tested against a protocol stub with the real `tritonclient`, **not yet run against a real Triton server** |
-| Triton benchmarking | planned |
+| Triton benchmarking (`trtship benchmark triton`, `benchmark overhead`) | implemented; tested against a protocol stub with the real `tritonclient`, **not yet run against a real Triton server** |
 | Pipeline orchestration (`trtship run`, `report`, `init`), artifact store, run caching and resume | implemented, tested (CPU stages) |
 | Remaining stages in `trtship run` (package, serve) | planned |
 
@@ -145,7 +145,8 @@ runs/2026-09-19_ab12cd/
   [engine validation](docs/pipeline/engine-validation.md),
   [benchmarking](docs/benchmarking/methodology.md),
   [Triton model repository](docs/triton/model-repository.md), [running Triton](docs/triton/server.md),
-  [clients and deployment validation](docs/triton/clients.md)
+  [clients and deployment validation](docs/triton/clients.md),
+  [benchmarking a served model](docs/triton/benchmarking.md)
 
 ## Architecture
 

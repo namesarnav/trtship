@@ -360,3 +360,24 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **A protocol stub, labelled as one.** `tests/fakes/fake_triton.py` implements the KServe v2
   endpoints over real HTTP and gRPC sockets so the real `tritonclient` code paths run in CI without a
   GPU. It serves ordinary Python functions; no claim about Triton's behavior rests on it.
+
+## D-031 - Triton benchmarking design (2026-09-19)
+
+- **The server's own statistics, not inference.** The client sees one opaque request time. The
+  queue and compute breakdown comes from Triton's cumulative statistics read before and after the
+  timed section, so warmup and the cold call are excluded and the figures are the server's clock.
+  The client + network share is derived by subtraction and labelled as derived.
+- **A target capability, not a special case.** `ServerSideObserver` is an optional protocol on a
+  benchmark target (`timed_started` / `timed_finished`); `measure()` calls it around exactly the
+  timed section. Other targets are unaffected and report no server-side times.
+- **One thread per worker for its whole life.** `tritonclient`'s HTTP client runs on gevent and
+  cannot be used from a thread other than the one that created it. `measure()` therefore warms up
+  and times each worker on one thread, with a barrier between the phases whose action starts the
+  server-side snapshot and the clock. Each thread opens its own client. Found by running concurrent
+  workers against the protocol stub; the earlier two-batch design would have failed the same way
+  against a real server.
+- **Overhead only where the work is identical.** Direct engines run one request at a time, so
+  served rows are paired with them only at concurrency 1. Other rows are reported as not compared.
+- **Mismatched request counts are surfaced.** If the server counts a different number of requests
+  than were sent, a note says the means describe a different population instead of silently
+  reporting them.

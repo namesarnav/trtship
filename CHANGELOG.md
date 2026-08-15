@@ -87,5 +87,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Shared comparison metrics (`trtship.validation`) reused by later TensorRT validation.
 - Shared `TensorSpec`/`DType` (`trtship.specs`) with `value_range` for generated data.
 
-#### Notes
-- Triton benchmarking does not exist yet.
+- Triton benchmarking (`trtship benchmark triton`, `trtship benchmark overhead`): measures a served
+  model over HTTP and gRPC through the real client, reads Triton's own queue/compute statistics
+  around the timed section (`server_side`), and reports serving overhead against a directly
+  executed engine with the client + network share labelled as derived. Tested against a protocol
+  stub; **not yet run against a real Triton server**.
+
+#### Changed
+- `measure()` warms up and times each concurrent worker on a single thread, with a barrier between
+  the phases, so clients that are bound to their creating thread (tritonclient over HTTP) work.

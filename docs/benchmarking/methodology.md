@@ -48,7 +48,7 @@ built for.
 - **Concurrency.** ONNX Runtime runs concurrent requests on threads. A directly executed TensorRT
   engine runs one request at a time; combinations with `concurrency > 1` are listed under
   `skipped` with the reason, never silently dropped or faked. Concurrency for TensorRT is a serving
-  concern and is measured through Triton (Phase 15).
+  concern and is measured through Triton (see [benchmarking a served model](../triton/benchmarking.md)).
 - **Noise.** A note is attached when a measurement has fewer than 100 timed requests (tail
   percentiles are estimates there) or a coefficient of variation above 0.25 (the machine was likely
   busy or clocks were changing).
