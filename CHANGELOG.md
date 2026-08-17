@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### 2026-09-19
 
 #### Added
+- ResNet-50 (torchvision, optional `examples` extra) and BERT-style (plain PyTorch, dynamic batch
+  and sequence, three integer inputs) examples with configs, tests and `docs/examples.md`.
 - Project foundation: `pyproject.toml` (uv, hatchling, src layout), Ruff, mypy (strict), pytest and
   coverage configuration, Makefile, pre-commit configuration.
 - Structured error model with stable exit codes (`trtship.errors`).

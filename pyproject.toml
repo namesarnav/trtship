@@ -41,6 +41,8 @@ trt = ["tensorrt>=10.0"]
 triton = ["tritonclient[all]>=2.40"]
 # The torch.export-based ONNX exporter (`export.dynamo: true`).
 dynamo = ["onnxscript>=0.1"]
+# The ResNet-50 example (`examples/resnet50`); install the build matching your torch.
+examples = ["torchvision>=0.18"]
 
 [project.scripts]
 trtship = "trtship.cli.main:main"

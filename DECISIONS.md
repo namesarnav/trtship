@@ -381,3 +381,19 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **Mismatched request counts are surfaced.** If the server counts a different number of requests
   than were sent, a note says the means describe a different population instead of silently
   reporting them.
+
+## D-032 - Example models (2026-09-19)
+
+- **ResNet-50 uses torchvision, as an optional extra** (`trtship[examples]`), with random weights
+  from `build()`. Committing or downloading weights would break "no weights in the repo" and make
+  the example depend on the network; real weights load through `kind: checkpoint`. The extra is
+  separate because torchvision must match the installed torch build.
+- **The BERT-style model is written in plain PyTorch**, not taken from `transformers`. It avoids a
+  heavy dependency and a network download, exports through the default exporter, and still has the
+  properties the pipeline must handle: several integer inputs and two dynamic axes. It is labelled
+  BERT-*style*: it is not BERT and loads no BERT weights.
+- **Calibration data is never shipped.** The ResNet config names a directory the user fills in, and
+  a test asserts it is absent, so the example cannot silently calibrate on synthetic data.
+- **INT8 is not enabled for the transformer example**; see docs/examples.md.
+- **Tests exercise the CPU stages only** and export (not validate) ResNet-50 to keep the suite fast.
+

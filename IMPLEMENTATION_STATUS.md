@@ -4,16 +4,14 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 20 - remaining CLI polish (not started). Phases 12-15 are complete.
+Phase 20 - remaining CLI polish (not started). Phases 12-15 and 22 are complete.
 
 ## Current task
 
-Add Triton HTTP and gRPC benchmark targets (`benchmark/targets.py` protocol) so the existing runner,
-statistics and reports measure a served model, and a decomposition of client-observed latency versus
-direct TensorRT execution (network/serialization overhead = Triton client latency - direct engine
-latency, reported as a difference of two measurements, never as a measured component). Then the
-remaining phases: CLI completion (Phase 20), tests and contract tests (21), examples (22), Docker
-(23), CI (24), documentation consolidation (25), final audit (26).
+Phase 20: verify exit codes and Rich output of every CLI command, and handle unexpected OS errors
+(for example an unwritable `artifacts.root`, which currently surfaces as a raw traceback) with a
+structured error. Then Phases 21 (testing and contract tests), 23 (Docker), 24 (CI), 25
+(documentation consolidation) and 26 (final audit).
 
 ## Completed phases
 
@@ -165,14 +163,21 @@ remaining phases: CLI completion (Phase 20), tests and contract tests (21), exam
     are synthetic constants: they prove the delta arithmetic and plumbing, not real Triton
     behaviour. **BLOCKED BY ENVIRONMENT:** measuring a real served TensorRT engine.
 
+- **Phase 22** - Example models: **verified on CPU** (2026-09-19).
+  - `examples/resnet50`, `examples/bert_style`, `configs/examples/{resnet50,bert_style}.yaml`,
+    `docs/examples.md`, `tests/e2e/test_examples_e2e.py`, D-032, the `examples` extra.
+  - Verified: both run inspect/export/validate/optimize on CPU (BERT-style: max abs error 3e-7;
+    ResNet-50: 6e-5). **BLOCKED BY ENVIRONMENT:** engine builds, INT8 calibration (no images ship),
+    benchmarks and serving for either model.
+
 ## Remaining tasks
 
-Phases 20-26 (remaining CLI, testing suite completion, examples for ResNet/BERT, Docker, CI,
+Phases 20, 21, 23-26 (remaining CLI, testing suite completion, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (806 passed, 6 skipped after Phase 15)
+- Passing: see `make check` (814 passed, 6 skipped after Phase 22)
 - Failing: none
 - Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not

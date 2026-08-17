@@ -70,6 +70,7 @@ trtship doctor --require tensorrt       # exit code 3 unless TensorRT is usable
 trtship init                            # write a starter config
 trtship config validate my-config.yaml  # validate a config; --set key=value to override
 trtship run configs/examples/custom_model.yaml --until optimize   # the CPU stages; a full run needs a GPU
+# more examples: configs/examples/resnet50.yaml and bert_style.yaml (see docs/examples.md)
 trtship report                          # summarize the latest run
 trtship build cfg.yaml model.onnx -o engines/   # TensorRT engines (needs a GPU; see docs/pipeline/tensorrt.md)
 trtship package cfg.yaml engines/m.fp16.plan -o model_repository   # Triton repository (no GPU needed)
@@ -137,7 +138,8 @@ runs/2026-09-19_ab12cd/
 
 ## Documentation
 
-- [Quickstart](docs/getting-started/quickstart.md), [configuration reference](docs/configuration.md)
+- [Quickstart](docs/getting-started/quickstart.md), [configuration reference](docs/configuration.md),
+  [example models](docs/examples.md)
 - Pipeline: [overview](docs/pipeline/overview.md), [models](docs/pipeline/models.md),
   [inspection](docs/pipeline/inspection.md), [export](docs/pipeline/export.md),
   [ONNX validation](docs/pipeline/onnx-validation.md), [optimization](docs/pipeline/optimization.md),
