@@ -167,6 +167,28 @@ def test_unexpected_exception_exits_70_with_traceback(monkeypatch: pytest.Monkey
     assert "RuntimeError" in result.output
 
 
+def test_filesystem_errors_exit_11_without_a_traceback(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unwritable() -> EnvironmentReport:
+        raise PermissionError(13, "Permission denied", "/runs")
+
+    monkeypatch.setattr(env, "probe_all", unwritable)
+    result = runner.invoke(app, ["doctor"])
+    assert result.exit_code == 11
+    assert "Permission denied: /runs" in result.output
+    assert "Traceback" not in result.output
+    assert "bug in trtship" not in result.output
+
+
+def test_connection_errors_are_not_mistaken_for_filesystem_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def refused() -> EnvironmentReport:
+        raise ConnectionRefusedError("nobody home")
+
+    monkeypatch.setattr(env, "probe_all", refused)
+    assert runner.invoke(app, ["doctor"]).exit_code == 70
+
+
 def test_yaml_is_not_a_mapping(tmp_path: Path) -> None:
     path = tmp_path / "c.yaml"
     path.write_text(yaml.safe_dump([1, 2]))

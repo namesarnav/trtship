@@ -4,14 +4,14 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 20 - remaining CLI polish (not started). Phases 12-15 and 22 are complete.
+Phase 21 - testing suite and contract tests (not started). Phases 12-15, 20 and 22 are complete.
 
 ## Current task
 
-Phase 20: verify exit codes and Rich output of every CLI command, and handle unexpected OS errors
-(for example an unwritable `artifacts.root`, which currently surfaces as a raw traceback) with a
-structured error. Then Phases 21 (testing and contract tests), 23 (Docker), 24 (CI), 25
-(documentation consolidation) and 26 (final audit).
+Phase 21: audit test coverage per module, add contract tests (config schema vs shipped JSON schema,
+CLI command list vs documentation, artifact metadata schemas), and the CPU end-to-end flow across
+the ONNX-to-Triton stages using the existing fakes; GPU tests must keep skipping cleanly. Then
+Phases 23 (Docker), 24 (CI), 25 (documentation consolidation) and 26 (final audit).
 
 ## Completed phases
 
@@ -170,14 +170,18 @@ structured error. Then Phases 21 (testing and contract tests), 23 (Docker), 24 (
     ResNet-50: 6e-5). **BLOCKED BY ENVIRONMENT:** engine builds, INT8 calibration (no images ship),
     benchmarks and serving for either model.
 
+- **Phase 20** - CLI polish: **verified** (2026-09-19). Swept every command with missing or invalid
+  inputs: each exits with its documented code and no traceback. Filesystem errors (`OSError`, other
+  than connection errors) now exit 11 with a plain message instead of the exit-70 "bug" path.
+
 ## Remaining tasks
 
-Phases 20, 21, 23-26 (remaining CLI, testing suite completion, Docker, CI,
+Phases 21, 23-26 (testing suite completion, Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (814 passed, 6 skipped after Phase 22)
+- Passing: see `make check` (816 passed, 6 skipped after Phase 20)
 - Failing: none
 - Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
