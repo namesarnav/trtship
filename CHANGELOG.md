@@ -7,10 +7,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### 2026-09-19
 
-#### Changed
-- CLI: filesystem errors (unwritable output, missing input, full disk) exit 11 with a message and
-  hint instead of an exit-70 traceback.
-
 #### Added
 - ResNet-50 (torchvision, optional `examples` extra) and BERT-style (plain PyTorch, dynamic batch
   and sequence, three integer inputs) examples with configs, tests and `docs/examples.md`.
@@ -100,5 +96,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   stub; **not yet run against a real Triton server**.
 
 #### Changed
+- CLI: filesystem errors (unwritable output, missing input, full disk) exit 11 with a message and
+  hint instead of an exit-70 traceback.
 - `measure()` warms up and times each concurrent worker on a single thread, with a barrier between
   the phases, so clients that are bound to their creating thread (tritonclient over HTTP) work.
