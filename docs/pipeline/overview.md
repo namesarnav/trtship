@@ -1,13 +1,16 @@
 # Pipeline overview
 
 ```
-inspect -> export -> validate -> optimize -> [build -> calibrate -> validate_engine -> benchmark
-                                              -> package -> serve]
+inspect -> export -> validate -> optimize -> calibrate -> build -> validate_engine -> benchmark
+                                                                           \-> package
 ```
 
-The bracketed engine stages are not implemented yet; `trtship run` runs the four stages before
-them. Each implemented stage is also available as its own command (`inspect`, `export`,
-`validate onnx`, `optimize`) that works on explicit file paths.
+Every stage is also a command that works on explicit file paths (`inspect`, `export`,
+`validate onnx`, `optimize`, `calibrate`, `build`, `validate engine`, `benchmark ...`, `package`).
+`calibrate` only runs when `int8` is in `tensorrt.precisions`. Serving is not a stage: `trtship
+serve`, `status` and `stop` manage the Triton container, and `validate triton` and `benchmark
+triton` measure it once it is running. The engine stages need a GPU and TensorRT; see the
+[capability preflight](#capability-preflight).
 
 ## Stages and ordering
 
@@ -74,10 +77,15 @@ silent fallback from GPU work to CPU.
 | code | meaning |
 |---|---|
 | 0 | success |
+| 1 | an external command (for example `docker`) failed |
 | 2 | invalid configuration or usage (including a config that differs from the run's snapshot) |
 | 3 | a required capability is unavailable |
 | 4 | model loading or inspection failed |
 | 5 | ONNX export or optimization failed |
 | 6 | a validation check failed |
-| 11 | artifact conflict, missing or corrupt artifact, or an existing run id |
+| 7 | TensorRT engine build, load or execution failed |
+| 8 | INT8 calibration failed or its data was invalid |
+| 9 | a benchmark could not be run |
+| 10 | Triton repository generation, server lifecycle or client failure |
+| 11 | artifact conflict, missing or corrupt artifact, an existing run id, or a filesystem error |
 | 70 | unexpected error (a bug) |

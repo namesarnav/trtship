@@ -20,6 +20,10 @@ os.environ.pop("FORCE_COLOR", None)
 os.environ["NO_COLOR"] = "1"
 
 
+TRITON_IMAGE_VAR = "TRTSHIP_TRITON_IMAGE"
+TRITON_IMAGE = os.environ.get(TRITON_IMAGE_VAR)
+
+
 def minimal_config_dict() -> dict[str, Any]:
     return {
         "model": {
@@ -78,11 +82,25 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     """
     gpu_ok, reason = _gpu_state()
     trt_ok, trt_reason = _tensorrt_state(gpu_ok, reason)
+    docker_ok, docker_reason = _docker_state()
     for item in items:
         if "gpu" in item.keywords and not gpu_ok:
             item.add_marker(pytest.mark.skip(reason=f"no usable NVIDIA GPU: {reason}"))
         if "tensorrt" in item.keywords and not trt_ok:
             item.add_marker(pytest.mark.skip(reason=trt_reason))
+        if "docker" in item.keywords and not docker_ok:
+            item.add_marker(pytest.mark.skip(reason=docker_reason))
+        if "triton" in item.keywords and not TRITON_IMAGE:
+            reason = f"set {TRITON_IMAGE_VAR} to a Triton image matching your TensorRT version"
+            item.add_marker(pytest.mark.skip(reason=reason))
+
+
+def _docker_state() -> tuple[bool, str]:
+    docker, runtime = env.probe_docker()
+    for capability in (docker, runtime):
+        if not capability.ok:
+            return False, f"{capability.name} unavailable: {capability.detail}"
+    return True, ""
 
 
 def _gpu_state() -> tuple[bool, str]:

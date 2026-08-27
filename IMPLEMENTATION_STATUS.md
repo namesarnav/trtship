@@ -4,14 +4,15 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 21 - testing suite and contract tests (not started). Phases 12-15, 20 and 22 are complete.
+Phase 23 - Docker (not started). Phases 12-15, 20, 21 and 22 are complete.
 
 ## Current task
 
-Phase 21: audit test coverage per module, add contract tests (config schema vs shipped JSON schema,
-CLI command list vs documentation, artifact metadata schemas), and the CPU end-to-end flow across
-the ONNX-to-Triton stages using the existing fakes; GPU tests must keep skipping cleanly. Then
-Phases 23 (Docker), 24 (CI), 25 (documentation consolidation) and 26 (final audit).
+Phase 23: Docker. A development image, a runtime image, Triton deployment and a Docker Compose file,
+with NVIDIA Container Toolkit documentation. Nothing can be built or run against a GPU here, so
+each file is validated statically (`docker compose config`, `docker build` of the CPU-only parts
+where the network allows) and labelled unverified where it is. Then Phases 24 (CI), 25
+(documentation consolidation) and 26 (final audit).
 
 ## Completed phases
 
@@ -174,16 +175,30 @@ Phases 23 (Docker), 24 (CI), 25 (documentation consolidation) and 26 (final audi
   inputs: each exits with its documented code and no traceback. Filesystem errors (`OSError`, other
   than connection errors) now exit 11 with a plain message instead of the exit-70 "bug" path.
 
+- **Phase 21** - Testing suite: **verified on CPU** (2026-09-19).
+  - `tests/contract/`: every `trtship` command line in the README and docs is parsed and checked
+    against the real CLI (command path, flags, referenced example configs); the pipeline diagram and
+    the exit-code table in `docs/pipeline/overview.md` are checked against the code. The first run
+    caught a documented config path that did not exist (fixed) and a stale overview (rewritten).
+  - `tests/e2e/test_deployment_flow.py`: PyTorch -> ONNX -> optimize -> fake engine -> real Triton
+    repository -> stub server configured from the generated `config.pbtxt` -> `validate triton` and
+    `benchmark triton` over HTTP and gRPC. Stand-ins for TensorRT and Triton are labelled in the file.
+  - `tests/gpu/test_deployment_gpu.py`: the same flow on real hardware. **Never run**; skipped
+    unless a GPU, TensorRT, Docker with the NVIDIA runtime and `TRTSHIP_TRITON_IMAGE` are all
+    present (the `docker` and `triton` markers are now enforced in `tests/conftest.py`).
+  - Verified: 953 passed, 7 skipped (GPU), ruff, mypy --strict.
+
 ## Remaining tasks
 
-Phases 21, 23-26 (testing suite completion, Docker, CI,
+Phases 23-26 ( Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (816 passed, 6 skipped after Phase 20)
+- Passing: see `make check` (953 passed, 7 skipped after Phase 21)
 - Failing: none
-- Skipped: the tests in `tests/gpu` (TensorRT build, INT8 calibration), each reporting
+- Skipped: the 7 tests in `tests/gpu` (TensorRT build, INT8 calibration, engine validation, the
+  Triton deployment flow), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
   passes: the TensorRT builder is unverified on hardware.
 - Coverage: 94% (`make test-cov`, measured after Phase 1); the uncovered lines are probe branches for states this machine

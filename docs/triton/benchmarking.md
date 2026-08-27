@@ -12,8 +12,8 @@ real `tritonclient` over real sockets and serves synthetic statistics; see
 ## Measuring
 
 ```bash
-trtship serve    configs/resnet50.yaml
-trtship benchmark triton configs/resnet50.yaml --precision fp16 \
+trtship serve    configs/examples/resnet50.yaml
+trtship benchmark triton configs/examples/resnet50.yaml --precision fp16 \
     --protocol http --protocol grpc -o build/served.json
 ```
 
@@ -61,7 +61,7 @@ differences of cumulative counters:
 ## Serving overhead
 
 ```bash
-trtship benchmark engine  configs/resnet50.yaml --engine fp16:build/resnet50.fp16.plan -o build/direct.json
+trtship benchmark engine  configs/examples/resnet50.yaml --engine fp16:build/resnet50.fp16.plan -o build/direct.json
 trtship benchmark overhead build/direct.json build/served.json
 ```
 
