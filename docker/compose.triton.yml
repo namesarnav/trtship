@@ -1,0 +1,41 @@
+# Triton Inference Server on a model repository written by `trtship package`.
+#
+#   TRITON_IMAGE=nvcr.io/nvidia/tritonserver:<xx.yy>-py3 \
+#   MODEL_REPOSITORY=./model_repository \
+#   docker compose -f docker/compose.triton.yml up
+#
+# TRITON_IMAGE has no default on purpose: a TensorRT plan only loads in the TensorRT version that
+# built it, so pick the release that matches your engines. This mirrors what `trtship serve` runs.
+# Requires the NVIDIA Container Toolkit (docs/docker.md).
+name: trtship-triton
+
+services:
+  triton:
+    image: ${TRITON_IMAGE:?set TRITON_IMAGE to the Triton release matching the TensorRT that built the engines}
+    command:
+      - tritonserver
+      - --model-repository=/models
+      - --strict-model-config=true
+      - --model-control-mode=none
+    volumes:
+      # Read-only, relative to this file's directory unless absolute.
+      - ${MODEL_REPOSITORY:-../model_repository}:/models:ro
+    ports:
+      # Bound to loopback by default: Triton has no authentication. Set BIND_ADDRESS=0.0.0.0
+      # deliberately to expose it.
+      - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-8000}:8000"
+      - "${BIND_ADDRESS:-127.0.0.1}:${GRPC_PORT:-8001}:8001"
+      - "${BIND_ADDRESS:-127.0.0.1}:${METRICS_PORT:-8002}:8002"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8000/v2/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s

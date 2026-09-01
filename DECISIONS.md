@@ -397,3 +397,19 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **INT8 is not enabled for the transformer example**; see docs/examples.md.
 - **Tests exercise the CPU stages only** and export (not validate) ResNet-50 to keep the suite fast.
 
+## D-033 - Docker images and Compose files (2026-09-19)
+
+- **Two targets in one Dockerfile.** `dev` is CPU-only and reproduces `make check`, so it can be
+  built and verified anywhere; `runtime` is `FROM` a configurable NGC PyTorch image that already has
+  a CUDA torch and TensorRT. trtship does not install torch or TensorRT itself in that image: pip
+  would replace the vendor build, and the TensorRT version is a deployment decision, not ours.
+- **The runtime image and Triton share a release tag by documented convention, not by default.**
+  The Triton compose file has no default image (`${TRITON_IMAGE:?}`), matching `triton.image`
+  (D-029): a plan loads only in the TensorRT that built it.
+- **Serving and tooling are separate Compose files.** One file with a required variable would make
+  even `docker compose run dev` fail when it is unset.
+- **Compose mirrors `trtship serve`** (command, read-only mount, loopback ports), and a contract test
+  compares the two so they cannot drift.
+- **`trtship serve` is not run inside the runtime container**; it drives the Docker CLI, which the
+  image deliberately lacks (no Docker socket is mounted into containers).
+

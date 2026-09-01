@@ -1,0 +1,37 @@
+# Development and pipeline containers. Run from the repository root:
+#
+#   docker compose -f docker/compose.yml run --rm dev                  # lint, types, CPU tests
+#   docker compose -f docker/compose.yml --profile gpu run --rm trtship run configs/my.yaml
+#
+# The GPU service needs the NVIDIA Container Toolkit on the host (docs/docker.md).
+# To serve models with Triton, see docker/compose.triton.yml.
+name: trtship
+
+services:
+  dev:
+    image: trtship-dev
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: dev
+    volumes:
+      - ..:/workspace
+
+  trtship:
+    profiles: ["gpu"]
+    image: trtship
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: runtime
+      args:
+        RUNTIME_BASE: ${RUNTIME_BASE:-nvcr.io/nvidia/pytorch:24.12-py3}
+    volumes:
+      - ..:/workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

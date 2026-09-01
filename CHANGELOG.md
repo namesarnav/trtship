@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### 2026-09-19
 
 #### Added
+- Docker: a CPU development image, a GPU runtime image, a Triton Compose file, `docs/docker.md`
+  (including NVIDIA Container Toolkit setup) and contract tests for the files.
 - Contract tests (`tests/contract`): documented commands, flags and example configs exist; the
   pipeline diagram and exit-code table match the code. A CPU end-to-end deployment-flow test and a
   hardware version of it that skips without a GPU, Docker runtime and `TRTSHIP_TRITON_IMAGE`.

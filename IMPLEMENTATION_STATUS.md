@@ -4,15 +4,14 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 23 - Docker (not started). Phases 12-15, 20, 21 and 22 are complete.
+Phase 24 - CI (not started). Phases 12-15 and 20-23 are complete.
 
 ## Current task
 
-Phase 23: Docker. A development image, a runtime image, Triton deployment and a Docker Compose file,
-with NVIDIA Container Toolkit documentation. Nothing can be built or run against a GPU here, so
-each file is validated statically (`docker compose config`, `docker build` of the CPU-only parts
-where the network allows) and labelled unverified where it is. Then Phases 24 (CI), 25
-(documentation consolidation) and 26 (final audit).
+Phase 24: GitHub Actions in `.github/workflows`: lint, format, type check, CPU tests with coverage,
+and a separate GPU job on a self-hosted runner that never reports skipped GPU tests as passed. The
+workflow cannot be run here; validate the YAML and that every step's command exists. Then Phases 25
+(documentation consolidation, README with all 16 required sections) and 26 (final audit).
 
 ## Completed phases
 
@@ -188,14 +187,21 @@ where the network allows) and labelled unverified where it is. Then Phases 24 (C
     present (the `docker` and `triton` markers are now enforced in `tests/conftest.py`).
   - Verified: 953 passed, 7 skipped (GPU), ruff, mypy --strict.
 
+- **Phase 23** - Docker: **partly verified** (2026-09-19).
+  - `docker/Dockerfile` (`dev`, `runtime`), `docker/compose.yml`, `docker/compose.triton.yml`,
+    `.dockerignore`, `docs/docker.md`, `tests/contract/test_docker_files.py`, D-033.
+  - Verified: the `dev` image builds and passes `make check` (953 passed); Compose files render;
+    `docker buildx build --check` is clean; the runtime steps work on a stand-in base.
+    **BLOCKED BY ENVIRONMENT:** the real NGC base (not pulled), `--gpus`, Triton from Compose.
+
 ## Remaining tasks
 
-Phases 23-26 ( Docker, CI,
+Phases 24-26 ( Docker, CI,
 documentation consolidation, final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (953 passed, 7 skipped after Phase 21)
+- Passing: see `make check` (961 passed, 7 skipped after Phase 23)
 - Failing: none
 - Skipped: the 7 tests in `tests/gpu` (TensorRT build, INT8 calibration, engine validation, the
   Triton deployment flow), each reporting

@@ -36,11 +36,10 @@ GPU hardware.
 | Triton clients (HTTP/gRPC), `validate triton` | implemented; tested against a protocol stub with the real `tritonclient`, **not yet run against a real Triton server** |
 | Triton benchmarking (`trtship benchmark triton`, `benchmark overhead`) | implemented; tested against a protocol stub with the real `tritonclient`, **not yet run against a real Triton server** |
 | Pipeline orchestration (`trtship run`, `report`, `init`), artifact store, run caching and resume | implemented, tested (CPU stages) |
-| Remaining stages in `trtship run` (package, serve) | planned |
+| Docker: CPU development image, GPU runtime image, Triton Compose file | `dev` image built and passes `make check`; runtime image and Compose GPU passthrough **not verified** (no NVIDIA runtime here) |
 
-Nothing labelled *planned* exists yet; commands for it are not registered. TensorRT- and
-Triton-dependent stages need an NVIDIA environment. They are implemented against the real APIs, and
-are only claimed to work once they have run on real hardware (see Limitations).
+TensorRT- and Triton-dependent stages need an NVIDIA environment. They are implemented against the
+real APIs, and are only claimed to work once they have run on real hardware (see Limitations).
 
 ## Installation
 
@@ -113,8 +112,8 @@ tensorrt:
 - Precedence: defaults < YAML < `TRTSHIP__SECTION__KEY` environment variables < `--set key=value`.
 - INT8 requires a `calibration` section. Synthetic calibration data is refused unless
   `allow_synthetic: true` is set explicitly, because it produces unreliable INT8 scales.
-- `model.trust_source` is validated today. The model loader that enforces it (weights-only loading
-  by default; `true` required for formats that execute code on load) is planned.
+- `model.trust_source` controls code execution while loading: checkpoints are loaded weights-only by
+  default, and TorchScript archives (which can carry executable content) require `true`.
 
 ### Run directories
 
@@ -139,7 +138,7 @@ runs/2026-09-19_ab12cd/
 ## Documentation
 
 - [Quickstart](docs/getting-started/quickstart.md), [configuration reference](docs/configuration.md),
-  [example models](docs/examples.md)
+  [example models](docs/examples.md), [Docker](docs/docker.md)
 - Pipeline: [overview](docs/pipeline/overview.md), [models](docs/pipeline/models.md),
   [inspection](docs/pipeline/inspection.md), [export](docs/pipeline/export.md),
   [ONNX validation](docs/pipeline/onnx-validation.md), [optimization](docs/pipeline/optimization.md),
