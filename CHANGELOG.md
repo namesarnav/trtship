@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### 2026-09-19
 
 #### Added
+- GitHub Actions: a CPU workflow (lint, format, types, schema freshness, tests with a 90%
+  coverage floor on Python 3.11 and 3.12, development image build) and a hardware workflow for a
+  self-hosted GPU runner that fails when tests were skipped; `make test-gpu`.
 - Docker: a CPU development image, a GPU runtime image, a Triton Compose file, `docs/docker.md`
   (including NVIDIA Container Toolkit setup) and contract tests for the files.
 - Contract tests (`tests/contract`): documented commands, flags and example configs exist; the

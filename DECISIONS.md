@@ -413,3 +413,18 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **`trtship serve` is not run inside the runtime container**; it drives the Docker CLI, which the
   image deliberately lacks (no Docker socket is mounted into containers).
 
+## D-034 - CI layout (2026-09-19)
+
+- **CPU checks and hardware checks are separate workflows.** Hosted runners have no GPU, so the
+  per-push workflow runs only what can pass there and says so; the hardware workflow is nightly and
+  manual and targets a self-hosted `gpu` runner. It never falls back to a hosted runner.
+- **Skipped hardware tests fail the hardware job** (`scripts/require_no_skips.py` reads the JUnit
+  report). Without this a runner lacking a driver would report a green run of zero executed tests.
+- **Python 3.11 and 3.12** only: they are the declared classifiers and 3.11 was run locally. 3.13 has
+  not been tried and is not claimed.
+- **Coverage floor of 90%** against a measured 96%: it catches a regression without failing on
+  routine changes. Coverage is over the CPU suite; hardware code paths reached only through fakes
+  count as covered by the fakes, which is not evidence they work on a device.
+- **Actions are pinned to major versions**, not commit SHAs, to keep the file readable; pin SHAs if
+  the repository is published to an environment with stricter supply-chain requirements.
+

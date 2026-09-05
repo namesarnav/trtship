@@ -140,6 +140,8 @@ branch = true
 
 [tool.coverage.report]
 show_missing = true
+# Measured 96% on the CPU suite; the floor catches a regression without churning on small changes.
+fail_under = 90
 skip_covered = false
 exclude_also = [
     "if TYPE_CHECKING:",

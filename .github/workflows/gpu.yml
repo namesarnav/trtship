@@ -1,0 +1,49 @@
+name: Hardware tests
+
+# Runs the tests that need a GPU, TensorRT and Docker with the NVIDIA runtime. GitHub-hosted runners
+# have none of these, so this needs a self-hosted runner labelled `gpu`. It is manual and nightly, not
+# per-push. A run in which the tests were skipped fails: skipped is not passed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      triton_image:
+        description: "Triton image matching the runner's TensorRT (default: repository variable TRITON_IMAGE)"
+        required: false
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gpu
+  cancel-in-progress: false
+
+jobs:
+  hardware:
+    name: GPU, TensorRT and Triton
+    # A repository without a self-hosted GPU runner leaves this job queued; it never falls back to a
+    # hosted runner that would skip everything.
+    runs-on: [self-hosted, linux, gpu]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install (GPU torch from PyPI; TensorRT must already be on the runner)
+        run: |
+          uv venv --python 3.12 .venv
+          uv pip install --python .venv/bin/python -e ".[triton]" --group dev
+      - name: Environment report
+        run: .venv/bin/trtship doctor --json
+      - name: GPU, TensorRT and Triton tests
+        # The deployment tests need TRTSHIP_TRITON_IMAGE; without it they skip and the gate below
+        # fails the job rather than reporting a pass.
+        env:
+          TRTSHIP_TRITON_IMAGE: ${{ inputs.triton_image || vars.TRITON_IMAGE }}
+        run: make test-gpu
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hardware-results
+          path: gpu-results.xml

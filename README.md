@@ -167,6 +167,20 @@ Tests that need a GPU, TensorRT, Docker, or Triton carry markers (`gpu`, `tensor
 `triton`) and are skipped with an explicit reason when the hardware is absent. A skipped GPU test is
 not a passed GPU test.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request: lint, format check,
+`mypy --strict` and a check that the configuration schema is current; the CPU tests with coverage
+(floor 90%) on Python 3.11 and 3.12; and a build of the development image with `make check` inside
+it. Coverage counts only CPU tests.
+
+`.github/workflows/gpu.yml` runs the `gpu`, `tensorrt` and `triton` tests nightly and on demand. It
+needs a self-hosted runner labelled `gpu` (with an NVIDIA driver, TensorRT, and Docker with the
+NVIDIA runtime) and a Triton image, given as the `triton_image` input or the `TRITON_IMAGE`
+repository variable. `make test-gpu` fails when any of those tests were skipped, so a runner
+without the hardware cannot report success. No such runner has been available, so this workflow has
+never run.
+
 ## Limitations
 
 - The TensorRT, INT8 calibration, and Triton stages have not yet been executed on real hardware.

@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.12.17"
+
+jobs:
+  static:
+    name: Lint, format and types
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install (CPU-only torch)
+        run: make install-cpu
+      - name: Lint
+        run: make lint
+      - name: Format check
+        run: make format-check
+      - name: Type check
+        run: make typecheck
+      - name: Configuration schema is up to date
+        run: |
+          make schema
+          git diff --exit-code configs/schemas
+
+  test:
+    name: CPU tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install (CPU-only torch)
+        run: make install-cpu PYTHON=${{ matrix.python }}
+      - name: Tests and coverage
+        # Deselects gpu, tensorrt, docker and triton tests; they are not run here, not "passed".
+        run: make test-cov
+      - name: Coverage report
+        if: matrix.python == '3.12'
+        run: .venv/bin/coverage xml
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.12'
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  docker-dev-image:
+    name: Development image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint the Dockerfile and render the Compose files
+        run: |
+          docker buildx build --check -f docker/Dockerfile --target dev .
+          docker compose -f docker/compose.yml config --quiet
+          TRITON_IMAGE=example docker compose -f docker/compose.triton.yml config --quiet
+      - name: Build the image and run make check inside it
+        run: |
+          docker build -f docker/Dockerfile --target dev -t trtship-dev .
+          docker run --rm trtship-dev

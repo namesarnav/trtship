@@ -4,14 +4,14 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 24 - CI (not started). Phases 12-15 and 20-23 are complete.
+Phase 25 - documentation (not started). Phases 12-15 and 20-24 are complete.
 
 ## Current task
 
-Phase 24: GitHub Actions in `.github/workflows`: lint, format, type check, CPU tests with coverage,
-and a separate GPU job on a self-hosted runner that never reports skipped GPU tests as passed. The
-workflow cannot be run here; validate the YAML and that every step's command exists. Then Phases 25
-(documentation consolidation, README with all 16 required sections) and 26 (final audit).
+Phase 25: documentation consolidation. The README must carry all 16 sections required by the brief
+plus TensorRT/CUDA compatibility, supported model types, dynamic shapes, calibration, benchmark
+methodology and common failures; every documented command must exist (the contract tests check
+this). Then Phase 26, the final audit (code, security, performance, reproducibility, full run).
 
 ## Completed phases
 
@@ -194,14 +194,23 @@ workflow cannot be run here; validate the YAML and that every step's command exi
     `docker buildx build --check` is clean; the runtime steps work on a stand-in base.
     **BLOCKED BY ENVIRONMENT:** the real NGC base (not pulled), `--gpus`, Triton from Compose.
 
+- **Phase 24** - CI: **written; the CPU workflow's commands verified locally, the workflows themselves
+  never run on GitHub.**
+  - `.github/workflows/ci.yml`, `gpu.yml`, `scripts/require_no_skips.py` (+ unit tests), `make test-gpu`,
+    a coverage floor (`fail_under = 90`; measured 96%), D-034.
+  - Verified: both workflow files parse as YAML; the `make` targets they call pass locally on 3.12; the
+    CPU suite passes on Python 3.11 (963 passed, 5 skipped) from a fresh `make install-cpu PYTHON=3.11`;
+    the schema is current; `make test-gpu` on this GPU-less machine exits non-zero (7 of 7 skipped).
+  - **BLOCKED BY ENVIRONMENT:** no GitHub runner here and no GPU runner exists, so neither workflow
+    has executed; action versions were not resolved against the marketplace.
+
 ## Remaining tasks
 
-Phases 24-26 ( Docker, CI,
-documentation consolidation, final audit) per `PROJECT_PLAN.md`.
+Phases 25 (documentation consolidation) and 26 (final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (961 passed, 7 skipped after Phase 23)
+- Passing: see `make check` (968 passed, 7 skipped after Phase 24)
 - Failing: none
 - Skipped: the 7 tests in `tests/gpu` (TensorRT build, INT8 calibration, engine validation, the
   Triton deployment flow), each reporting
