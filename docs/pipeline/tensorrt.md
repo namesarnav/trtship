@@ -48,9 +48,9 @@ use, build time, warnings, and the captured WARNING/ERROR lines of the builder l
 | `fp16` | `FP16` | a warning is recorded if the GPU reports no fast FP16 |
 | `int8` | `INT8` (+ `FP16` if `int8_fp16_fallback`, default true) | needs a calibrator or a model with Q/DQ nodes |
 
-INT8 without either is refused before TensorRT is touched. The `calibrate` stage that produces the
-calibration cache is not implemented yet, so the `build` stage currently refuses `int8` with an
-explicit error.
+INT8 without either is refused before TensorRT is touched. The `calibrate` stage produces the
+calibration cache (see [INT8 calibration](../calibration/int8.md)); `build` then builds the INT8
+engine from that cache.
 
 ## Optimization profiles
 

@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### 2026-09-19
 
 #### Added
+- README rewritten around the 16 required sections, with compatibility, supported model types,
+  dynamic shapes, benchmark methodology and a troubleshooting table; a contract test that every
+  relative link and heading anchor in the documentation resolves.
 - GitHub Actions: a CPU workflow (lint, format, types, schema freshness, tests with a 90%
   coverage floor on Python 3.11 and 3.12, development image build) and a hardware workflow for a
   self-hosted GPU runner that fails when tests were skipped; `make test-gpu`.
@@ -104,6 +107,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   stub; **not yet run against a real Triton server**.
 
 #### Changed
+- Documentation: removed statements that INT8 calibration and engine validation were not yet
+  implemented, and the README's claim that `trust_source` enforcement was planned.
 - `docs/pipeline/overview.md`: current stage list, complete exit-code table.
 - `docs/triton/benchmarking.md`: example config paths point at `configs/examples/`.
 - CLI: filesystem errors (unwritable output, missing input, full disk) exit 11 with a message and

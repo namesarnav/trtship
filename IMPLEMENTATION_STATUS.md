@@ -4,14 +4,15 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 25 - documentation (not started). Phases 12-15 and 20-24 are complete.
+Phase 26 - final audit (not started). Phases 12-15 and 20-25 are complete.
 
 ## Current task
 
-Phase 25: documentation consolidation. The README must carry all 16 sections required by the brief
-plus TensorRT/CUDA compatibility, supported model types, dynamic shapes, calibration, benchmark
-methodology and common failures; every documented command must exist (the contract tests check
-this). Then Phase 26, the final audit (code, security, performance, reproducibility, full run).
+Phase 26: the final engineering audit. Code (duplicated logic, dead code, unused dependencies, weak
+error handling, resource leaks, races, platform assumptions), security (unsafe model loading,
+arbitrary code execution, untrusted artifacts, path traversal, shell injection), performance,
+reproducibility, documentation accuracy, and a full test run. Then restate what is and is not
+verified on hardware.
 
 ## Completed phases
 
@@ -204,13 +205,22 @@ this). Then Phase 26, the final audit (code, security, performance, reproducibil
   - **BLOCKED BY ENVIRONMENT:** no GitHub runner here and no GPU runner exists, so neither workflow
     has executed; action versions were not resolved against the marketplace.
 
+- **Phase 25** - Documentation: complete for what exists.
+  - README restructured to the 16 required sections plus compatibility, supported model types,
+    dynamic shapes, calibration, benchmark methodology and a troubleshooting table; stale
+    "not implemented" statements fixed; `tests/contract/test_documented_links.py` (71 links, anchors
+    included; mutation-checked). Every documented `trtship` command line is still validated by the
+    contract tests against the real CLI.
+  - Not verified: any statement about real TensorRT/Triton behaviour, which is documented as
+    unverified where it appears.
+
 ## Remaining tasks
 
-Phases 25 (documentation consolidation) and 26 (final audit) per `PROJECT_PLAN.md`.
+Phase 26 (final audit) per `PROJECT_PLAN.md`.
 
 ## Tests
 
-- Passing: see `make check` (968 passed, 7 skipped after Phase 24)
+- Passing: see `make check` (1059 passed, 7 skipped after Phase 25)
 - Failing: none
 - Skipped: the 7 tests in `tests/gpu` (TensorRT build, INT8 calibration, engine validation, the
   Triton deployment flow), each reporting

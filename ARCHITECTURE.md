@@ -222,3 +222,14 @@ Model loading is treated as code execution and gated (3.5). Paths from config ar
 constrained to the project/run roots where they are outputs. Subprocess calls use argv lists, never
 `shell=True`. Docker containers run without `--privileged`, with read-only mounts for the model
 repository. Artifacts from other runs are hash-verified before reuse.
+
+## 10. Packaging and CI
+
+`docker/Dockerfile` has two targets: `dev` (CPU torch, reproduces `make check`) and `runtime` (an NGC
+PyTorch base that already carries CUDA torch and TensorRT, with trtship installed on top and a
+non-root user). `docker/compose.triton.yml` mirrors the argv `TritonServer` builds and a contract
+test compares them. CI splits along the GPU/CPU boundary of section 4: `ci.yml` runs everything that
+can pass on a hosted runner and never counts a deselected hardware test; `gpu.yml` targets a
+self-hosted runner and fails when any hardware test was skipped (`scripts/require_no_skips.py`).
+Decisions D-033 and D-034 give the reasoning.
+

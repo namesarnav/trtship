@@ -67,4 +67,4 @@ unless `tensorrt.int8_fp16_fallback: false`.
 
 - One calibrated input per model; dynamic non-batch dimensions must be fixed by the profile's `opt`.
 - Whether an INT8 engine is accurate enough is not decided here: that is what numerical validation
-  against PyTorch measures (see the roadmap for engine validation).
+  against PyTorch measures (see [engine validation](../pipeline/engine-validation.md)).
