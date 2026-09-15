@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import resource
+import sys
 import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -20,9 +20,15 @@ from trtship.onnx.runtime import OrtSession
 from trtship.tensorrt.executor import BoundExecution, TensorRTExecutor
 
 
-def cpu_rss_mb() -> float:
-    """Peak resident set size of this process (Linux reports kilobytes)."""
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
+def cpu_rss_mb() -> float | None:
+    """Peak resident set size of this process in MiB; ``None`` where the OS cannot report it."""
+    try:
+        import resource  # noqa: PLC0415 - not available on Windows
+    except ImportError:
+        return None
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # Linux reports kilobytes, macOS bytes.
+    return peak / (1024.0 * 1024.0) if sys.platform == "darwin" else peak / 1024.0
 
 
 def torch_gpu_used_mb(index: int = 0) -> float | None:

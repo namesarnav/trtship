@@ -417,7 +417,7 @@ real APIs, and are only claimed to work once they have run on real hardware (see
 ## Documentation
 
 - [Quickstart](docs/getting-started/quickstart.md), [configuration reference](docs/configuration.md),
-  [example models](docs/examples.md), [Docker](docs/docker.md)
+  [example models](docs/examples.md), [Docker](docs/docker.md), [security model](docs/security.md)
 - Pipeline: [overview](docs/pipeline/overview.md), [models](docs/pipeline/models.md),
   [inspection](docs/pipeline/inspection.md), [export](docs/pipeline/export.md),
   [ONNX validation](docs/pipeline/onnx-validation.md), [optimization](docs/pipeline/optimization.md),

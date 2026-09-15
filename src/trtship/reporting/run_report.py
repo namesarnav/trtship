@@ -20,7 +20,7 @@ from trtship.artifacts import (
     StageRecord,
     StageStatus,
 )
-from trtship.utils.env import EnvironmentReport, GpuDevice
+from trtship.utils.env import EnvironmentReport
 from trtship.utils.units import format_bytes
 
 SUMMARY_SCHEMA_VERSION = 1
@@ -161,11 +161,6 @@ _STATUS_STYLE = {
     StageStatus.RUNNING: "[yellow]running[/]",
     StageStatus.PENDING: "[dim]pending[/]",
 }
-
-
-def _gpu_label(gpu: GpuDevice) -> str:
-    capability = (gpu.compute_capability or "?").replace(".", "")
-    return f"{gpu.name} (sm_{capability})"
 
 
 def _render_header(summary: RunSummary, console: Console) -> None:

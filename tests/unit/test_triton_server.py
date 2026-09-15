@@ -404,3 +404,30 @@ def test_the_real_transport_raises_oserror_when_nothing_listens() -> None:
 def test_the_real_transport_only_speaks_plain_http() -> None:
     with pytest.raises(ValueError, match="plain http"):
         urllib_transport("GET", "file:///etc/passwd", 1.0)
+
+
+@pytest.mark.parametrize(
+    "image", ["--privileged", "-v", "nvcr.io/x:1 --privileged", "image;rm", "", "a b"]
+)
+def test_an_image_that_could_be_read_as_a_docker_option_is_rejected(image: str) -> None:
+    with pytest.raises(ValueError, match="image reference"):
+        TritonConfig(image=image)
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        "nvcr.io/nvidia/tritonserver:24.12-py3",
+        "localhost:5000/team/triton:dev",
+        "triton@sha256:" + "a" * 64,
+    ],
+)
+def test_ordinary_image_references_are_accepted(image: str) -> None:
+    assert TritonConfig(image=image).image == image
+
+
+def test_a_repository_path_that_would_alter_the_mount_spec_is_refused(tmp_path: Path) -> None:
+    hostile = tmp_path / "repo:rw"
+    hostile.mkdir()
+    with pytest.raises(ConfigError, match="contains ':'"):
+        build_run_argv(settings(), hostile)

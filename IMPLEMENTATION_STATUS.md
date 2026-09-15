@@ -4,15 +4,14 @@ Last updated: 2026-09-19
 
 ## Current phase
 
-Phase 26 - final audit (not started). Phases 12-15 and 20-25 are complete.
+All 26 phases are implemented. Phase 26 (final audit) is complete for everything that can be verified
+on a CPU-only machine. Stages that need a GPU, TensorRT or Triton are implemented but **not verified
+on hardware** (see "Blocked tasks").
 
 ## Current task
 
-Phase 26: the final engineering audit. Code (duplicated logic, dead code, unused dependencies, weak
-error handling, resource leaks, races, platform assumptions), security (unsafe model loading,
-arbitrary code execution, untrusted artifacts, path traversal, shell injection), performance,
-reproducibility, documentation accuracy, and a full test run. Then restate what is and is not
-verified on hardware.
+None outstanding on this machine. The remaining work is hardware verification (see
+"Next recommended action").
 
 ## Completed phases
 
@@ -205,6 +204,23 @@ verified on hardware.
   - **BLOCKED BY ENVIRONMENT:** no GitHub runner here and no GPU runner exists, so neither workflow
     has executed; action versions were not resolved against the marketplace.
 
+- **Phase 26** - Final audit: complete for what can run here (D-035).
+  - Findings fixed: `triton.image` was passed to `docker run` unvalidated (a value beginning with `-`
+    would have been read as a docker option), so it is now validated by the config model; a
+    repository path containing `:` could alter the `-v` mount spec, so `build_run_argv` refuses it.
+    Both have unit tests.
+  - Dead code removed: `_has_subgraphs`, `Stage.input_path`, `_gpu_label`, and the unused
+    `utils/seed.py` module (the manifest seed is still tested).
+  - Platform assumption fixed: `cpu_rss_mb` no longer imports the POSIX-only `resource` module at
+    import time, returns `None` where unavailable, and handles macOS (bytes) vs Linux (KB).
+  - Documentation: `docs/security.md` (trust boundaries, the unauthenticated Triton endpoint, what is
+    not covered) and a Determinism section in `docs/pipeline/models.md`.
+  - Verified: attribution scan of files and all commit messages is clean; no weights or engines are
+    tracked; no TODO/stub code in the core; two independent `run --until optimize` runs give
+    byte-identical ONNX and validation-report hashes; `make check` passes inside the dev Docker image.
+  - Not fixed, documented: CLI start-up is about 2 s because `trtship.models` imports torch (D-035).
+  - Not verified: everything listed under "Blocked tasks".
+
 - **Phase 25** - Documentation: complete for what exists.
   - README restructured to the 16 required sections plus compatibility, supported model types,
     dynamic shapes, calibration, benchmark methodology and a troubleshooting table; stale
@@ -216,18 +232,19 @@ verified on hardware.
 
 ## Remaining tasks
 
-Phase 26 (final audit) per `PROJECT_PLAN.md`.
+No implementation phases remain. What remains is verification that needs hardware, listed under
+"Next recommended action".
 
 ## Tests
 
-- Passing: see `make check` (1059 passed, 7 skipped after Phase 25)
+- Passing: see `make check` (1068 passed, 7 skipped after Phase 26)
 - Failing: none
 - Skipped: the 7 tests in `tests/gpu` (TensorRT build, INT8 calibration, engine validation, the
   Triton deployment flow), each reporting
   `no usable NVIDIA GPU: Failed to initialize NVML: Driver/library version mismatch`. Skips are not
   passes: the TensorRT builder is unverified on hardware.
-- Coverage: 94% (`make test-cov`, measured after Phase 1); the uncovered lines are probe branches for states this machine
-  cannot produce naturally and a few error paths.
+- Coverage: 96.14% (`make test-cov`, floor 90); the uncovered lines are probe branches for states this
+  machine cannot produce naturally and a few error paths.
 
 ## Known bugs
 
@@ -241,6 +258,10 @@ APIs, and nothing is marked working until it has run on real hardware):
 - Phase 7 TensorRT engine build, Phase 8 calibrator execution, Phase 9 TensorRT leg,
   Phase 10 TensorRT benchmarking, Phase 12 loading a repository in Triton, Phase 13 server lifecycle,
   Phase 14 validating a real served model, Phase 15 measuring a real served engine.
+- Also unverified, for the same reason: the `runtime` Docker image on the real NGC base (the 24.12-py3
+  tag was not pulled), GPU passthrough through Compose, the Compose healthcheck (whether `curl` exists
+  in the Triton image), `/v2/repository/index` against a real Triton, and both GitHub workflows (never
+  run on GitHub; action versions not resolved). `tests/gpu/*` has never run.
 
 ## Environment limitations (dev machine, observed 2026-09-19)
 
@@ -271,6 +292,16 @@ APIs, and nothing is marked working until it has run on real hardware):
 
 ## Next recommended action
 
-Phase 20 onward (CLI polish, testing-suite completion, examples, Docker, CI, docs, audit). If a GPU
-machine becomes available first, run `pytest -m tensorrt -v` to verify Phases 7-10, then run
-`trtship serve`, `validate triton` and `benchmark triton` against a real Triton container.
+On a machine with a working NVIDIA GPU, TensorRT and the NVIDIA container toolkit:
+
+1. `make install` (or install the `tensorrt` extra), then `pytest -m tensorrt -v` to verify the
+   engine build, INT8 calibration and engine validation (Phases 7-10).
+2. Set `TRTSHIP_TRITON_IMAGE` to a Triton image matching the installed TensorRT version, then
+   `make test-gpu` (it fails if any GPU test is skipped).
+3. `trtship serve`, `trtship validate triton` and `trtship benchmark triton` against a real Triton
+   container, using the repository from a completed run.
+4. `docker build --target runtime -f docker/Dockerfile .` against the real NGC base image.
+5. Check TensorRT's support for Pascal (sm_61) before using the dev GPU for this.
+
+Record each result (pass, fail, or fix) in this file; until then those stages stay "not verified".
+Pushing the local commits is left to the owner.

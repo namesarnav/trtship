@@ -25,6 +25,15 @@ Checkpoint files may hold a bare state dict or one wrapped under `state_dict`, `
 `model`. A `module.` key prefix left by `DataParallel`/DDP is stripped. Keys must match the model
 exactly: missing or unexpected keys, and shape mismatches, fail with the offending keys listed.
 
+## Determinism
+
+`seed` in the configuration controls the randomness trtship owns: example inputs, calibration
+sampling and synthetic data. It does not seed the model factory. A `module` factory that
+initializes weights randomly must seed itself (the example factories take a `seed` argument), or
+each run builds a different model. The weights hash is recorded and part of every cache key, so
+this shows up as changed weights and invalidated caches rather than passing silently. Models loaded
+from a `checkpoint` or `torchscript` archive are deterministic.
+
 ## Inputs
 
 Inputs are declared, not inferred, because an `nn.Module` does not say what it accepts:

@@ -114,6 +114,13 @@ def build_run_argv(settings: TritonConfig, repository: Path) -> list[str]:
             hint="Set triton.image to the Triton release that ships the TensorRT version that "
             "built your engine, e.g. nvcr.io/nvidia/tritonserver:<xx.yy>-py3.",
         )
+    mount_source = str(repository.resolve())
+    if ":" in mount_source:
+        # `--volume` splits on ":", so this path would change the mount's target or options.
+        raise ConfigError(
+            f"the model repository path contains ':' and cannot be mounted safely: {mount_source}",
+            hint="Move or rename the repository so its path has no colon.",
+        )
     bind = f"[{settings.bind_address}]" if ":" in settings.bind_address else settings.bind_address
     ports = [
         f"{bind}:{settings.http_port}:8000",
@@ -125,7 +132,7 @@ def build_run_argv(settings: TritonConfig, repository: Path) -> list[str]:
         argv += ["--publish", port]
     argv += [
         "--volume",
-        f"{repository.resolve()}:{CONTAINER_REPOSITORY}:ro",
+        f"{mount_source}:{CONTAINER_REPOSITORY}:ro",
         settings.image,
         "tritonserver",
         f"--model-repository={CONTAINER_REPOSITORY}",

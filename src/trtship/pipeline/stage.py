@@ -73,11 +73,6 @@ class StageContext:
             self.inputs_used.append(record)
         return record
 
-    def input_path(self, artifact_type: ArtifactType) -> Path:
-        record = self.input(artifact_type)
-        assert record is not None  # not optional
-        return self.store.absolute(record)
-
     def publish(
         self,
         path: Path,

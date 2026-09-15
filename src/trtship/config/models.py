@@ -343,6 +343,18 @@ class TritonConfig(_Base):
             raise ValueError("must be an IPv4 or IPv6 address") from exc
         return value
 
+    @field_validator("image")
+    @classmethod
+    def _valid_image(cls, value: str | None) -> str | None:
+        # The value becomes a docker argument: a leading "-" would be read as an option
+        # (`--privileged`), so only an image reference is accepted.
+        if value is not None and not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/:@-]*", value):
+            raise ValueError(
+                "must be an image reference such as nvcr.io/nvidia/tritonserver:<tag>, with no "
+                "spaces and not starting with '-'"
+            )
+        return value
+
     @field_validator("container_name")
     @classmethod
     def _valid_container_name(cls, value: str) -> str:

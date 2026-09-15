@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### 2026-09-19
 
 #### Added
+- `docs/security.md`: trust boundaries, what is guarded and what is not.
 - README rewritten around the 16 required sections, with compatibility, supported model types,
   dynamic shapes, benchmark methodology and a troubleshooting table; a contract test that every
   relative link and heading anchor in the documentation resolves.
@@ -107,6 +108,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   stub; **not yet run against a real Triton server**.
 
 #### Changed
+- `triton.image` is validated as an image reference (a leading `-` was passed to `docker run` as
+  an option) and a model repository path containing `:` is refused before it can alter the mount.
+- The benchmark memory probe works where `resource` is unavailable or reports bytes.
+- Removed unused code: `seed_everything` and three private helpers.
 - Documentation: removed statements that INT8 calibration and engine validation were not yet
   implemented, and the README's claim that `trust_source` enforcement was planned.
 - `docs/pipeline/overview.md`: current stage list, complete exit-code table.

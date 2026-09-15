@@ -37,6 +37,12 @@ NVIDIA environment, implemented against real APIs, verified only where noted in 
 | 25 | Documentation | README + docs tree, every documented command verified | CPU |
 | 26 | Final audit | code, security, perf, reproducibility, docs, full test run | all |
 
+## Status
+
+Phases 0-26 are implemented and the CPU-verifiable work is audited (see `IMPLEMENTATION_STATUS.md`).
+The GPU-marked phases (7-10, 12-15) remain unverified on hardware; the status file lists the
+commands that close that gap.
+
 ## Ordering notes
 
 - Phases 1-6 and 16-19 are deliberately built first: they are fully verifiable here and everything

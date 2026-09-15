@@ -91,10 +91,6 @@ def _walk_nodes(graph: onnx.GraphProto) -> Iterator[onnx.NodeProto]:
             yield from _walk_nodes(sub)
 
 
-def _has_subgraphs(graph: onnx.GraphProto) -> bool:
-    return any(True for node in graph.node for _ in _subgraphs(node))
-
-
 def _names_used_inside(node: onnx.NodeProto) -> set[str]:
     """Names a node's subgraphs read; an over-approximation of their free variables."""
     used: set[str] = set()

@@ -428,3 +428,22 @@ is covered by the existing trust statement: `kind: module` runs your code by des
 - **Actions are pinned to major versions**, not commit SHAs, to keep the file readable; pin SHAs if
   the repository is published to an environment with stricter supply-chain requirements.
 
+## D-035 - Final audit outcomes (2026-09-19)
+
+Fixed: `triton.image` accepted any string and became a `docker run` argument, so a value beginning
+with `-` was read as a flag; it is now validated as an image reference. A repository path containing
+`:` could rewrite the `--volume` spec; it is now refused. Dead code removed (`seed_everything`, which
+nothing called, and three unused helpers). `cpu_rss_mb` no longer assumes Linux units or the Unix-only
+`resource` module. The stale documentation statements found were corrected.
+
+Left as is, deliberately:
+
+- **CLI start-up takes about 2 s** for `version` and `--help`, of which about 1.2 s is importing torch
+  through `trtship.models`. Making every command module lazy would fix it at the cost of a wider
+  refactor of the command registration; not done.
+- **The model factory is not seeded by trtship.** Seeding the global RNGs would hide a
+  non-deterministic factory instead of surfacing it as changed weights; documented in
+  `docs/pipeline/models.md`.
+- **Trusted configuration.** A config can import arbitrary Python through `model.factory`. This is
+  the same trust as a Makefile and is stated in `docs/security.md` rather than sandboxed.
+
